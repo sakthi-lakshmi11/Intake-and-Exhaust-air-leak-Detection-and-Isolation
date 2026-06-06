@@ -1,0 +1,33 @@
+============================================================
+CATERPILLAR C7 DIAGNOSTIC MODEL INTEGRATION NOTES
+============================================================
+1. Model File: c7_leak_detector_adam.keras
+2. Scaler File: sensor_scaler.joblib (Load using: joblib.load())
+3. Sequence Length: 30 time-steps (3 seconds of data at 10Hz)
+
+4. Model Inputs Expected (Shape: 1, 30, 17):
+   - 4 Operational inputs + 13 Sensor RESIDUALS.
+   - Run live_inference_pipeline.py to see how raw actual scanner metrics 
+     are converted to residuals on-the-fly using the Physics Lookup maps.
+
+5. Class Labels Mapping for Frontend Display:
+   * Section Output Branches:
+     0: Healthy (No Leak)
+     1: Air Filter to MAF Sensor
+     2: MAF Sensor to Turbo Compressor In
+     3: Turbo Compressor Out to CAC
+     4: CAC to Intake Manifold
+     5: Cylinder to Turbine In
+     6: Diesel Oxidation Catalyst (DOC)
+     7: Diesel Particulate Filter (DPF)
+     8: SCR Tracking Zone
+
+   * Severity Output Branches:
+     0: No Leak Detected
+     1: Low Severity Leak
+     2: Moderate Severity Leak
+     3: High Severity Leak
+
+   * Go / No-Go Indicator:
+     0: NON-GO (IMMEDIATE SHUTDOWN)
+     1: GO (System Safe)
