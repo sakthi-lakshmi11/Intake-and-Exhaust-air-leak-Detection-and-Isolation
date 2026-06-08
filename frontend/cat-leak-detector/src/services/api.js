@@ -1,5 +1,5 @@
 // Flask API Integration Configuration
-const USE_MOCK_API = true; // Toggle to false to hit real Flask backend
+const USE_MOCK_API = false; 
 const API_BASE_URL = 'http://localhost:5000/api';
 
 const REPORTS_STORAGE_KEY = 'cat_diagnostics_reports';

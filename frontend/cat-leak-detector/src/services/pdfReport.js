@@ -146,12 +146,21 @@ export function generateDiagnosticPDF(report, currentUser) {
   doc.setFont('helvetica');
 
   const {
-    id, timestamp, prediction, status, confidence,
-    riskLevel, recommendations, inputs, engineModel,
-    technician
-  } = report;
-
-  const isGo        = status === 'GO';
+  id,
+  timestamp,
+  prediction = report.leak_section || 'No Leak',
+  status = report.go_nogo || 'GO',
+  confidence = 0,
+  riskLevel = report.riskLevel || report.severity || 'Low',
+  recommendations = [],
+  inputs = {},
+  engineModel,
+  technician
+} = report;
+  const safeRiskLevel = riskLevel || 'Low';
+  const isGo =
+  status === 'GO' ||
+  prediction === 'No Leak';
   const hasIntakeLeak  = !isGo && (prediction === 'Intake Leak'  || prediction === 'Combined Leak');
   const hasExhaustLeak = !isGo && (prediction === 'Exhaust Leak' || prediction === 'Combined Leak');
   const operator    = technician || currentUser?.fullName || 'N/A';
@@ -249,7 +258,7 @@ export function generateDiagnosticPDF(report, currentUser) {
     setTextColor(doc, GRAY_DARK);
     doc.text('Severity Level:', MARGIN, y);
 
-    const sevColor = riskLevel === 'Critical' ? RED : riskLevel === 'High' ? [234, 88, 12] : riskLevel === 'Medium' ? [161, 98, 7] : GREEN;
+    const sevColor = safeRiskLevel === 'Critical' ? RED : safeRiskLevel === 'High' ? [234, 88, 12] : safeRiskLevel === 'Medium' ? [161, 98, 7] : GREEN;
     setFill(doc, sevColor.map(c => Math.min(255, c + 170)));
     setDraw(doc, sevColor);
     doc.setLineWidth(0.4);
@@ -257,7 +266,7 @@ export function generateDiagnosticPDF(report, currentUser) {
     setTextColor(doc, sevColor);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
-    doc.text(riskLevel.toUpperCase(), MARGIN + 35, y + 0.5);
+    doc.text(safeRiskLevel.toUpperCase(), MARGIN + 35, y + 0.5);
     y += 8;
   }
 
@@ -380,7 +389,7 @@ export function generateDiagnosticPDF(report, currentUser) {
   doc.text('EXHAUST OUT', cx + eW + 44, ey + 24, { align: 'center' });
 
   // Leak markers
-  if (!isGo && prediction.includes('Intake')) {
+  if (!isGo && (prediction || '').includes('Intake')) {
     setFill(doc, RED);
     doc.circle(cx - eW - 5, ey + 25, 3.5, 'F');
     setTextColor(doc, RED);
@@ -388,7 +397,7 @@ export function generateDiagnosticPDF(report, currentUser) {
     doc.setFontSize(5.5);
     doc.text('⚠ INTAKE LEAK', cx - eW + 5, ey + 62);
   }
-  if (!isGo && prediction.includes('Exhaust')) {
+  if (!isGo && (prediction || '').includes('Exhaust')) {
     setFill(doc, RED);
     doc.circle(cx + eW + 5, ey + 25, 3.5, 'F');
     setTextColor(doc, RED);
@@ -421,7 +430,7 @@ export function generateDiagnosticPDF(report, currentUser) {
   y = sectionBar(doc, y, '05 — Maintenance Recommendations');
   y += 5;
 
-  recommendations.forEach((rec) => {
+ (recommendations || []).forEach((rec) => {
     y = checkPage(y, 14);
     y = bulletLine(doc, y, rec);
   });

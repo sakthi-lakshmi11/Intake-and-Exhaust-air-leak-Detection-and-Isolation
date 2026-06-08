@@ -53,9 +53,22 @@ export default function Results() {
     return null;
   }
 
-  const { id, timestamp, prediction, status, confidence, riskLevel, recommendations, inputs } = report;
+ const {
+  id,
+  timestamp,
+  prediction = report.leak_section || 'No Leak',
+  status = report.go_nogo || 'GO',
+  confidence = 0,
+  riskLevel = report.severity || 'Low',
+  recommendations = [],
+  inputs = {}
+} = report;
   const engineModel = report.engineModel || inputs?.engineModel || 'C7';
-  const isGo = status === 'GO';
+  const isGo =
+  status === 'GO' ||
+  status === 'Healthy' ||
+  prediction === 'Healthy' ||
+  prediction === 'No Leak';
   const leakLocation = leakLocationMap[prediction] || '—';
 
   const handleGenerateReport = () => {
@@ -254,7 +267,7 @@ export default function Results() {
         <div>
           <SectionTitle>Recommended Maintenance Actions</SectionTitle>
           <div className="bg-white dark:bg-cat-charcoal border border-gray-200 dark:border-gray-800 rounded-xl divide-y divide-gray-100 dark:divide-gray-800">
-            {recommendations.map((rec, i) => (
+            {(recommendations || []).map((rec, i) => (
               <div key={i} className="flex items-start gap-3 px-5 py-4">
                 <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
                 <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{rec}</span>
