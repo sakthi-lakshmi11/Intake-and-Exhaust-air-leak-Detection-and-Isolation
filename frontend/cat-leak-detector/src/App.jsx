@@ -1,6 +1,5 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
@@ -26,7 +25,7 @@ const ProtectedRoute = ({ children }) => {
 
 function Layout() {
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-cat-dark text-cat-black dark:text-gray-200 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-white text-cat-black">
       <Navbar />
       <main className="flex-grow">
         <Routes>
@@ -101,13 +100,11 @@ function Layout() {
 export default function App() {
   return (
     <Router>
-      <ThemeProvider>
-        <LanguageProvider>
-          <AuthProvider>
-            <Layout />
-          </AuthProvider>
-        </LanguageProvider>
-      </ThemeProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <Layout />
+        </AuthProvider>
+      </LanguageProvider>
     </Router>
   );
 }

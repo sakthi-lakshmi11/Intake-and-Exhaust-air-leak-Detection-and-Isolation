@@ -106,7 +106,7 @@ export default function Analysis() {
 
   return (
     <div
-      className="min-h-screen bg-white dark:bg-cat-dark flex items-center justify-center px-4 py-12 transition-colors duration-300"
+      className="min-h-screen bg-white flex items-center justify-center px-4 py-12 transition-colors duration-300"
       style={FONT}
     >
       {/* Top yellow accent */}
@@ -115,7 +115,7 @@ export default function Analysis() {
       <div className="w-full max-w-lg">
 
         {/* Card */}
-        <div className="bg-white dark:bg-cat-charcoal border border-gray-100 dark:border-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-lg overflow-hidden">
 
           {/* Card header */}
           <div className="bg-cat-black px-8 py-5 text-center">
@@ -178,16 +178,16 @@ export default function Analysis() {
                       </span>
                     ) : (
                       <span className="w-4 h-4 shrink-0 flex items-center justify-center">
-                        <span className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 block" />
+                        <span className="w-2 h-2 rounded-full bg-gray-300 block" />
                       </span>
                     )}
 
                     {/* Label */}
                     <span
                       className={`text-sm ${
-                        done    ? 'text-gray-700 dark:text-gray-300 font-medium' :
-                        current ? 'text-gray-900 dark:text-white font-semibold' :
-                                  'text-gray-400 dark:text-gray-600'
+                        done    ? 'text-gray-700 font-medium' :
+                        current ? 'text-gray-900 font-semibold' :
+                                  'text-gray-400'
                       }`}
                     >
                       {step.label}
@@ -200,7 +200,7 @@ export default function Analysis() {
           </div>
 
           {/* Card footer */}
-          <div className="border-t border-gray-100 dark:border-gray-800 px-8 py-4 bg-gray-50 dark:bg-gray-900/50 flex items-center justify-between">
+          <div className="border-t border-gray-100 px-8 py-4 bg-gray-50 flex items-center justify-between">
             <span className="text-[10px] text-gray-400 uppercase tracking-widest">
               Do not close or navigate away
             </span>

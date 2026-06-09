@@ -19,10 +19,10 @@ const riskColor = (level) => {
 };
 
 const riskBg = (level) => {
-  if (level === 'Critical') return 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800';
-  if (level === 'High')     return 'bg-orange-50 border-orange-200 dark:bg-orange-900/10 dark:border-orange-800';
-  if (level === 'Medium')   return 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800';
-  return 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800';
+  if (level === 'Critical') return 'bg-red-50 border-red-200';
+  if (level === 'High')     return 'bg-orange-50 border-orange-200';
+  if (level === 'Medium')   return 'bg-yellow-50 border-yellow-200';
+  return 'bg-green-50 border-green-200';
 };
 
 const leakLocationMap = {
@@ -32,10 +32,10 @@ const leakLocationMap = {
   'Combined Leak': 'Intake Manifold + Exhaust Manifold',
 };
 
-const Divider = () => <div className="h-px bg-gray-100 dark:bg-gray-800" />;
+const Divider = () => <div className="h-px bg-gray-100" />;
 
 const SectionTitle = ({ children }) => (
-  <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400 mb-4">
+  <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500 mb-4">
     {children}
   </h2>
 );
@@ -76,7 +76,7 @@ export default function Results() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-cat-dark transition-colors duration-300" style={FONT}>
+    <div className="min-h-screen bg-white transition-colors duration-300" style={FONT}>
       <div className="h-1 w-full bg-cat-yellow" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-8 py-10 space-y-8">
@@ -86,13 +86,13 @@ export default function Results() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cat-yellow">
             Diagnostics Analysis Report
           </p>
-          <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-gray-900">
             Intake and Exhaust Air Leak Detection
           </h1>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-[12px] text-gray-500 dark:text-gray-400">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-[12px] text-gray-500">
             <span className="flex items-center gap-1.5">
               <Hash className="w-3.5 h-3.5" />
-              Analysis ID: <span className="font-semibold text-gray-700 dark:text-gray-300 ml-1">{id}</span>
+              Analysis ID: <span className="font-semibold text-gray-700 ml-1">{id}</span>
             </span>
             <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{timestamp}</span>
             <span className="flex items-center gap-1.5"><Cpu className="w-3.5 h-3.5" />Caterpillar {engineModel}</span>
@@ -104,18 +104,18 @@ export default function Results() {
 
         {/* ── 2. PRIMARY RESULT ── */}
         <div className={`rounded-xl border-2 p-6 sm:p-8 flex items-start gap-5 ${
-          isGo ? 'bg-green-50 border-green-300 dark:bg-green-900/10 dark:border-green-700'
-               : 'bg-red-50 border-red-300 dark:bg-red-900/10 dark:border-red-700'
+          isGo ? 'bg-green-50 border-green-300'
+               : 'bg-red-50 border-red-300'
         }`}>
-          <div className={`p-3 rounded-full shrink-0 ${isGo ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+          <div className={`p-3 rounded-full shrink-0 ${isGo ? 'bg-green-100' : 'bg-red-100'}`}>
             {isGo ? <CheckCircle2 className="w-10 h-10 text-green-600" /> : <AlertTriangle className="w-10 h-10 text-red-600" />}
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">System Status</p>
-            <h2 className={`text-2xl sm:text-3xl font-extrabold uppercase tracking-tight ${isGo ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-500 mb-1">System Status</p>
+            <h2 className={`text-3xl sm:text-4xl font-extrabold uppercase tracking-tight ${isGo ? 'text-green-700' : 'text-red-700'}`}>
               {isGo ? 'GO — System Clear' : 'NON-GO — Leak Detected'}
             </h2>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 max-w-xl leading-relaxed">
+            <p className="mt-2 text-sm text-gray-600 max-w-xl leading-relaxed">
               {isGo
                 ? 'Engine operating parameters are within acceptable limits. No significant intake or exhaust air leak detected.'
                 : 'Potential air leak detected in the engine air system. Maintenance action is recommended before continued operation.'}
@@ -125,16 +125,16 @@ export default function Results() {
 
         {/* ── 3. SUMMARY CARDS ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-cat-charcoal border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Confidence Score</p>
-            <p className="text-2xl font-extrabold text-gray-900 dark:text-white">{confidence}%</p>
-            <div className="mt-2 h-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+            <p className="text-2xl font-extrabold text-gray-900">{confidence}%</p>
+            <div className="mt-2 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full bg-cat-yellow rounded-full" style={{ width: `${confidence}%` }} />
             </div>
           </div>
-          <div className="bg-white dark:bg-cat-charcoal border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Leak Status</p>
-            <p className="text-lg font-extrabold text-gray-900 dark:text-white leading-tight">{prediction}</p>
+            <p className="text-lg font-extrabold text-gray-900 leading-tight">{prediction}</p>
             <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">ML Classification</p>
           </div>
           <div className={`border rounded-xl p-5 ${riskBg(riskLevel)}`}>
@@ -142,9 +142,9 @@ export default function Results() {
             <p className={`text-lg font-extrabold leading-tight ${riskColor(riskLevel)}`}>{riskLevel}</p>
             <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">Risk Assessment</p>
           </div>
-          <div className="bg-white dark:bg-cat-charcoal border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Detected Section</p>
-            <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-tight">
+            <p className="text-sm font-extrabold text-gray-900 leading-tight">
               {isGo ? 'None' : prediction.includes('Intake') && prediction.includes('Exhaust') ? 'Intake + Exhaust'
                 : prediction.includes('Intake') ? 'Intake System' : 'Exhaust System'}
             </p>
@@ -157,10 +157,10 @@ export default function Results() {
         {/* ── 4. LEAK LOCATION ── */}
         <div>
           <SectionTitle>Detected Leak Location</SectionTitle>
-          <div className="flex items-start gap-4 bg-gray-50 dark:bg-cat-charcoal border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+          <div className="flex items-start gap-4 bg-gray-50 border border-gray-200 rounded-xl p-5">
             <MapPin className={`w-5 h-5 mt-0.5 shrink-0 ${isGo ? 'text-green-500' : 'text-red-500'}`} />
             <div>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">{leakLocation}</p>
+              <p className="text-sm font-semibold text-gray-900">{leakLocation}</p>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Severity:</span>
                 <span className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded ${
@@ -182,7 +182,7 @@ export default function Results() {
           {/* Engine Diagram */}
           <div>
             <SectionTitle>Leak Location Visualization</SectionTitle>
-            <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden bg-white dark:bg-cat-charcoal">
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
               {/* Header strip */}
               <div className="bg-cat-black px-4 py-2.5 flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-cat-yellow">
@@ -214,7 +214,7 @@ export default function Results() {
               </div>
 
               {/* Footer strip */}
-              <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-between">
+              <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
                 <span className="text-[10px] text-gray-400">
                   {isGo ? 'No leak markers' : leakLocation}
                 </span>
@@ -232,8 +232,8 @@ export default function Results() {
           {/* Repair Video */}
           <div>
             <SectionTitle>Repair Guidance Video</SectionTitle>
-            <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden bg-gray-50 dark:bg-cat-charcoal h-full flex flex-col">
-              <div className="flex-1 flex items-center justify-center h-48 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50 h-full flex flex-col">
+              <div className="flex-1 flex items-center justify-center h-48 bg-gradient-to-br from-gray-100 to-gray-200">
                 <div className="text-center">
                   <div
                     className="w-14 h-14 rounded-full bg-cat-black/80 flex items-center justify-center mx-auto mb-3 cursor-pointer hover:bg-cat-yellow group transition-colors"
@@ -243,12 +243,12 @@ export default function Results() {
                       <path d="M8 5v14l11-7z"/>
                     </svg>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-gray-500">
                     {isGo ? 'Routine Maintenance Guide' : `${prediction} Repair Tutorial`}
                   </p>
                 </div>
               </div>
-              <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800">
+              <div className="px-4 py-3 border-t border-gray-200">
                 <button
                   onClick={() => alert('Video integration ready. Connect MP4 or YouTube link to enable playback.')}
                   className="w-full flex items-center justify-center gap-2 bg-cat-black text-white text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
@@ -266,11 +266,11 @@ export default function Results() {
         {/* ── 7. RECOMMENDATIONS ── */}
         <div>
           <SectionTitle>Recommended Maintenance Actions</SectionTitle>
-          <div className="bg-white dark:bg-cat-charcoal border border-gray-200 dark:border-gray-800 rounded-xl divide-y divide-gray-100 dark:divide-gray-800">
+          <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
             {(recommendations || []).map((rec, i) => (
               <div key={i} className="flex items-start gap-3 px-5 py-4">
                 <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
-                <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{rec}</span>
+                <span className="text-sm text-gray-700 leading-relaxed">{rec}</span>
               </div>
             ))}
           </div>
@@ -289,9 +289,9 @@ export default function Results() {
               { label: 'Injection Time',     value: `${inputs?.fuelInjectionTime} ms` },
               { label: 'Injection Pressure', value: `${inputs?.injectionPressure} bar` },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-gray-50 dark:bg-cat-charcoal border border-gray-200 dark:border-gray-800 rounded-lg px-4 py-3 text-center">
+              <div key={label} className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-center">
                 <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{label}</p>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">{value}</p>
+                <p className="text-sm font-bold text-gray-900">{value}</p>
               </div>
             ))}
           </div>
@@ -303,7 +303,7 @@ export default function Results() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4">
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-700 hover:border-cat-yellow text-gray-700 dark:text-gray-300 hover:text-gray-900 px-5 py-3.5 rounded-xl font-semibold text-sm uppercase tracking-wide transition-all duration-200 cursor-pointer active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 border border-gray-300 hover:border-cat-yellow text-gray-700 hover:text-gray-900 px-5 py-3.5 rounded-xl font-semibold text-sm uppercase tracking-wide transition-all duration-200 cursor-pointer active:scale-[0.98]"
           >
             <RotateCcw className="w-4 h-4" />
             Run New Analysis

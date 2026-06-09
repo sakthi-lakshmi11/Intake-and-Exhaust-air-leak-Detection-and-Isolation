@@ -36,18 +36,6 @@
   border-radius: 4px;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
 /* Custom Utilities and Animations */
 @keyframes pulse-ring {
   0% {
@@ -86,13 +74,21 @@ body {
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
   background-color: #ffffff;
   color: #111111;
-  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body.dark {
-  background-color: #0a0a0a;
-  color: #f3f4f6;
+/* ── Typography Standardization ── */
+
+/* Yellow Section Labels - Increased by 1.5rem */
+.section-label-yellow {
+  @apply text-[12.5px] font-semibold uppercase tracking-[0.2em] text-cat-yellow;
 }
+
+/* White Main Headings - Increased by 0.5rem */
+.main-heading-white {
+  @apply text-3xl sm:text-4xl font-extrabold uppercase tracking-tight text-gray-900 dark:text-white;
+}
+
+/* Responsiveness maintained: text-3xl for mobile, text-4xl for sm+ breakpoints */
 
 .glassmorphism {
   background: rgba(255, 255, 255, 0.7);

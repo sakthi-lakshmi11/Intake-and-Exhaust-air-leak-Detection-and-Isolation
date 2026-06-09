@@ -30,10 +30,10 @@ export default function Contact() {
       <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 sm:py-14 lg:py-16">
         {/* Page Header */}
         <div className="border-b border-gray-200 dark:border-gray-800 pb-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cat-yellow">
+          <p className="section-label-yellow">
             {t('navContact')}
           </p>
-          <h1 className="mt-2 text-3xl sm:text-4xl lg:text-5xl font-extrabold uppercase tracking-tight text-cat-black dark:text-white leading-[0.95]">
+          <h1 className="mt-2 text-4xl sm:text-5xl lg:text-6xl font-extrabold uppercase tracking-tight text-cat-black dark:text-white leading-[0.95]">
             {t('contactTitle')}
           </h1>
           <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 max-w-3xl leading-relaxed">

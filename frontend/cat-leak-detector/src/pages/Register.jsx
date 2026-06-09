@@ -51,7 +51,7 @@ export default function Register() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-cat-dark px-4 py-12 transition-colors duration-300"
+      className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 transition-colors duration-300"
       style={FONT}
     >
       {/* Loading overlay */}
@@ -68,16 +68,16 @@ export default function Register() {
 
       <div className="w-full max-w-sm">
         {/* Card */}
-        <div className="bg-white dark:bg-cat-charcoal rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
           {/* Yellow top bar */}
           <div className="h-1 w-full bg-cat-yellow" />
 
           <div className="px-8 pt-8 pb-8">
             {/* Logo + Title */}
             <div className="flex flex-col items-center mb-7 gap-3">
-              <CaterpillarLogo className="h-8 text-cat-black dark:text-white" />
+              <CaterpillarLogo className="h-8 text-cat-black" />
               <div className="text-center">
-                <h1 className="text-[15px] font-extrabold uppercase tracking-tight text-gray-900 dark:text-white leading-tight">
+                <h1 className="text-[15px] font-extrabold uppercase tracking-tight text-gray-900 leading-tight">
                   Create Account
                 </h1>
                 <p className="mt-1 text-[11px] text-gray-400 font-normal tracking-wide">
@@ -88,7 +88,7 @@ export default function Register() {
 
             {/* Error */}
             {error && (
-              <div className="mb-5 flex items-start gap-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-xs text-red-600 dark:text-red-400">
+              <div className="mb-5 flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-xs text-red-600">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
@@ -172,7 +172,7 @@ export default function Register() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-4 pr-11 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-white text-sm font-normal placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50 focus:border-cat-yellow transition-all duration-200"
+                    className="w-full pl-4 pr-11 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm font-normal placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50 focus:border-cat-yellow transition-all duration-200"
                   />
                   <button
                     type="button"
@@ -233,11 +233,11 @@ export default function Register() {
             </form>
 
             {/* Login link */}
-            <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p className="mt-6 text-center text-sm text-gray-500">
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="font-semibold text-cat-black dark:text-white hover:text-cat-yellow dark:hover:text-cat-yellow transition-colors"
+                className="font-semibold text-cat-black hover:text-cat-yellow transition-colors"
               >
                 Login
               </Link>

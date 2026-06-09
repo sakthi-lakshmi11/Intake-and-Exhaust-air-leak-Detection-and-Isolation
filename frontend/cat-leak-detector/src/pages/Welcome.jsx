@@ -39,10 +39,10 @@ export default function Welcome() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 w-full">
           <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cat-yellow mb-4">
+            <p className="section-label-yellow mb-4">
               {t('heroBadge')}
             </p>
-            <h1 className="text-4xl sm:text-5xl font-extrabold uppercase tracking-tight text-white leading-[1.1] mb-5">
+            <h1 className="text-5xl sm:text-6xl font-extrabold uppercase tracking-tight text-white leading-[1.1] mb-5">
               {t('heroTitle')}
             </h1>
             <p className="text-base text-gray-300 leading-relaxed mb-3">
@@ -71,10 +71,10 @@ export default function Welcome() {
       </div>
 
       {/* Capabilities */}
-      <div id="capabilities" className="py-16 bg-white dark:bg-cat-dark border-t border-gray-100 dark:border-gray-800">
+      <div id="capabilities" className="py-16 bg-white border-t border-gray-100">
         <div className="max-w-5xl mx-auto px-6 sm:px-10">
           <div className="mb-10">
-            <h2 className="text-xl font-bold uppercase tracking-tight text-gray-900 dark:text-white">
+            <h2 className="text-xl font-bold uppercase tracking-tight text-gray-900">
               {t('featuresTitle')}
             </h2>
             <div className="w-10 h-0.5 bg-cat-yellow mt-3" />
@@ -83,15 +83,15 @@ export default function Welcome() {
             {features.map(({ icon, title, desc }) => (
               <div
                 key={title}
-                className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-cat-charcoal p-6 hover:border-gray-300 dark:hover:border-gray-700 transition-colors duration-200"
+                className="border border-gray-200 bg-white p-6 hover:border-gray-300 transition-colors duration-200"
               >
-                <div className="w-9 h-9 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-700 dark:text-gray-300 mb-4">
+                <div className="w-9 h-9 bg-gray-100 flex items-center justify-center text-gray-700 mb-4">
                   {icon}
                 </div>
-                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white mb-2">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-gray-900 mb-2">
                   {title}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="text-sm text-gray-500 leading-relaxed">
                   {desc}
                 </p>
               </div>

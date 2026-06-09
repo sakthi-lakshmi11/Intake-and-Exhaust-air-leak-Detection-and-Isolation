@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import LanguageSelect from './LanguageSelect';
-import ThemeToggle from './ThemeToggle';
 import CaterpillarLogo from './CaterpillarLogo';
 import { Menu, X, LogOut } from 'lucide-react';
 
@@ -63,7 +62,6 @@ export default function Navbar() {
           {/* Right controls */}
           <div className="hidden lg:flex items-center gap-3">
             <LanguageSelect />
-            <ThemeToggle />
 
             {currentUser ? (
               <div className="flex items-center gap-2 bg-[#1a1a1a] border border-gray-700 rounded px-3 py-1.5">
@@ -98,7 +96,6 @@ export default function Navbar() {
 
           {/* Mobile toggle */}
           <div className="flex lg:hidden items-center gap-2">
-            <ThemeToggle />
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="p-2 rounded text-gray-300 hover:bg-white/10 transition-colors cursor-pointer"

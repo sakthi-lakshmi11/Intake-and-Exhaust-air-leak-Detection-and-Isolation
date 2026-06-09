@@ -329,7 +329,7 @@ export default function About() {
 
           <div className="lg:col-span-5">
             <div className="border border-gray-200 dark:border-gray-800 p-7">
-              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-cat-yellow">Design Focus</p>
+              <p className="text-[12.5px] font-bold uppercase tracking-[0.22em] text-cat-yellow">Design Focus</p>
               <p className="mt-3 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                 Clean, minimal industrial UI—optimized for readability, operator confidence, and engineering review.
               </p>

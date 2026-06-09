@@ -6,8 +6,8 @@ const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
 
 const SectionHead = ({ icon, label }) => (
   <div className="flex items-center gap-2.5 mb-5">
-    <div className="text-gray-600 dark:text-gray-400">{icon}</div>
-    <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-gray-700 dark:text-gray-300">{label}</h2>
+    <div className="text-gray-600">{icon}</div>
+    <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-gray-700">{label}</h2>
   </div>
 );
 
@@ -88,7 +88,7 @@ export default function Support() {
 
   return (
     <div
-      className="min-h-screen bg-white dark:bg-cat-dark transition-colors duration-300"
+      className="min-h-screen bg-white transition-colors duration-300"
       style={FONT}
     >
       <div className="h-1 w-full bg-cat-yellow" />
@@ -96,11 +96,11 @@ export default function Support() {
       <div className="max-w-4xl mx-auto px-4 sm:px-8 py-10 space-y-8">
 
         {/* Header */}
-        <div className="border-b border-gray-200 dark:border-gray-800 pb-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cat-yellow mb-1">
+        <div className="border-b border-gray-200 pb-5">
+          <p className="section-label-yellow mb-1">
             {t('supportBadge')}
           </p>
-          <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-gray-900 dark:text-white">
+          <h1 className="main-heading-white">
             {t('supportTitle')}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -111,7 +111,7 @@ export default function Support() {
         {/* User Guide */}
         <div className="bg-gray-50 dark:bg-cat-charcoal border border-gray-200 dark:border-gray-800 rounded-lg p-6">
           <SectionHead icon={<BookOpen className="w-4.5 h-4.5" />} label={t('userGuideTitle')} />
-          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
+          <p className="text-sm text-gray-600 leading-relaxed mb-5">
             {t('userGuideText')}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
