@@ -143,7 +143,9 @@ export const api = {
 
     await new Promise((r) => setTimeout(r, 4500));
 
-    const { rpm, fuelRate, fuelInjectionTime, injectionPressure, engineModel } = inputs;
+    const { rpm, fuelRate, fuelInjectionTime, injectionPressure, engineModel,
+            engineVersion, engineVersionLabel, releaseYear,
+            manufacturingYear, manufacturingYears } = inputs; // FEATURE 1: destructure version fields
 
     let prediction = 'No Leak';
     let status = 'GO';
@@ -220,6 +222,12 @@ export const api = {
       role: technicianInfo?.role || 'Operator',
       branch: technicianInfo?.branch || '',
       engineModel: engineModel || 'C7',
+      // FEATURE 1: persist version metadata in the stored report
+      engineVersion:      engineVersion      || '',
+      engineVersionLabel: engineVersionLabel || '',
+      releaseYear:        releaseYear        || '',
+      manufacturingYear:  manufacturingYear  || '',
+      manufacturingYears: manufacturingYears || '',
       prediction,
       status,
       confidence: parseFloat(confidence.toFixed(1)),

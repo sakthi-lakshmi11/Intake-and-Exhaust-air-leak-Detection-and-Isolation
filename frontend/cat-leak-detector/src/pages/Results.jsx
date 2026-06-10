@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { generateDiagnosticPDF } from '../services/pdfReport';
+import { getLeakDisplay } from '../services/leakDisplay'; // FEATURE 2
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import EngineDiagram from '../components/EngineDiagram';
 import {
   CheckCircle2, AlertTriangle, RotateCcw, FileText,
   LayoutDashboard, CheckSquare, Video, MapPin,
-  Clock, User, Hash, Cpu, ZoomIn, X
+  Clock, User, Hash, Cpu, ZoomIn, X, Play, Film
 } from 'lucide-react';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
@@ -40,6 +41,134 @@ const SectionTitle = ({ children }) => (
   </h2>
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// REPAIR VIDEO LIBRARY
+// System-provided guidance videos. Operators watch only — no upload.
+// Replace `src` with a real URL or hosted path when videos are available.
+// ─────────────────────────────────────────────────────────────────────────────
+const VIDEO_SLOTS = [
+  {
+    id:    1,
+    label: 'Repair Video 1',
+    title: 'Pre-Inspection Walkthrough',
+    desc:  'Complete engine bay inspection procedure before beginning any repair.',
+    src:   '',   // replace with hosted video URL, e.g. '/videos/repair-guide-1.mp4'
+  },
+  {
+    id:    2,
+    label: 'Repair Video 2',
+    title: 'Intake & Exhaust Leak Diagnosis',
+    desc:  'Step-by-step identification of intake and exhaust air leak sources.',
+    src:   '',   // replace with hosted video URL
+  },
+  {
+    id:    3,
+    label: 'Repair Video 3',
+    title: 'Post-Repair Verification',
+    desc:  'Verification checklist and pressure test after completing the repair.',
+    src:   '',   // replace with hosted video URL
+  },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RepairVideoCard
+// Read-only guidance video card. Operators can play / pause / seek / fullscreen.
+// No upload, no file-picker, no user-supplied content.
+// ─────────────────────────────────────────────────────────────────────────────
+function RepairVideoCard({ slot }) {
+  const videoRef            = useRef(null);
+  const [playing, setPlaying] = useState(false);
+
+  // Sync the `playing` flag with native play/pause events so the overlay
+  // button icon stays accurate even when the user uses browser-native controls.
+  const handlePlay  = () => setPlaying(true);
+  const handlePause = () => setPlaying(false);
+
+  const togglePlay = () => {
+    if (!videoRef.current) return;
+    playing ? videoRef.current.pause() : videoRef.current.play();
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white flex flex-col">
+
+      {/* Card header — black strip matching the industrial dashboard theme */}
+      <div className="bg-cat-black px-4 py-2.5 flex items-center justify-between shrink-0">
+        <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-cat-yellow">
+          <Film className="w-3.5 h-3.5" />
+          {slot.label}
+        </span>
+        {/* System-provided badge — reinforces read-only intent */}
+        <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-cat-yellow/20 text-cat-yellow">
+          System Guide
+        </span>
+      </div>
+
+      {/* Video area */}
+      <div className="relative bg-black flex-1">
+        {slot.src ? (
+          // ── Real video: native player with full browser controls ──────────
+          // `controls` gives play / pause / seek / volume / fullscreen natively.
+          <video
+            ref={videoRef}
+            src={slot.src}
+            controls
+            onPlay={handlePlay}
+            onPause={handlePause}
+            className="w-full block bg-black"
+            style={{ maxHeight: '180px', objectFit: 'contain' }}
+          />
+        ) : (
+          // ── Placeholder thumbnail shown when no src is configured ─────────
+          // Clicking the play button or the thumbnail area triggers togglePlay,
+          // which is a no-op here but wires up naturally once a src is set.
+          <div
+            className="w-full h-[148px] flex flex-col items-center justify-center gap-3
+                       bg-gradient-to-br from-gray-900 to-gray-800 cursor-pointer group"
+            onClick={togglePlay}
+            role="button"
+            aria-label={`Play ${slot.label}`}
+          >
+            {/* Play button ring */}
+            <div className="w-12 h-12 rounded-full border-2 border-cat-yellow/60
+                            flex items-center justify-center
+                            group-hover:border-cat-yellow group-hover:bg-cat-yellow/10
+                            transition-all duration-200">
+              <Play className="w-5 h-5 text-cat-yellow fill-cat-yellow ml-0.5" />
+            </div>
+            {/* Video title inside the thumbnail */}
+            <p className="text-[11px] font-semibold text-gray-300 px-4 text-center leading-snug">
+              {slot.title}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer — video description + Watch Video button */}
+      <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 shrink-0 space-y-2">
+        {/* Short description of what the video covers */}
+        <p className="text-[10px] text-gray-500 leading-relaxed">{slot.desc}</p>
+        {/* Watch Video button — plays the video (or shows coming-soon notice) */}
+        <button
+          type="button"
+          onClick={() =>
+            slot.src
+              ? videoRef.current?.play()
+              : alert('Video coming soon. Contact your system administrator to configure the repair video library.')
+          }
+          className="w-full flex items-center justify-center gap-2
+                     bg-cat-black text-white text-[11px] font-bold uppercase tracking-wider
+                     py-2 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+        >
+          <Play className="w-3.5 h-3.5 fill-current" />
+          Watch Video
+        </button>
+      </div>
+
+    </div>
+  );
+}
+
 export default function Results() {
   const { currentUser } = useAuth();
   const location = useLocation();
@@ -70,6 +199,11 @@ export default function Results() {
   prediction === 'Healthy' ||
   prediction === 'No Leak';
   const leakLocation = leakLocationMap[prediction] || '—';
+
+  // Resolve all no-leak display values from a single source of truth.
+  // isGo → leakLabel='NO LEAK' (green), riskDisplay='—', sectionDisplay='—'
+  // leak  → leakLabel=prediction, riskDisplay=riskLevel, sectionDisplay=derived
+  const leakDisplay = getLeakDisplay(prediction, riskLevel);
 
   const handleGenerateReport = () => {
     generateDiagnosticPDF(report, currentUser);
@@ -132,21 +266,45 @@ export default function Results() {
               <div className="h-full bg-cat-yellow rounded-full" style={{ width: `${confidence}%` }} />
             </div>
           </div>
+          {/* Leak Status card
+               No-leak  → 'NO LEAK' in green
+               Leak      → raw prediction string in existing dark colour */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Leak Status</p>
-            <p className="text-lg font-extrabold text-gray-900 leading-tight">{prediction}</p>
-            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">ML Classification</p>
+            <p className={`text-lg font-extrabold leading-tight ${
+              leakDisplay.isNil ? 'text-green-600' : 'text-gray-900'
+            }`}>
+              {leakDisplay.leakLabel}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">
+              {leakDisplay.leakStatus}
+            </p>
           </div>
-          <div className={`border rounded-xl p-5 ${riskBg(riskLevel)}`}>
+
+          {/* Risk Level card
+               No-leak  → '—' in neutral grey, neutral background
+               Leak      → existing coloured background + coloured text */}
+          <div className={`border rounded-xl p-5 ${
+            leakDisplay.isNil ? 'bg-white border-gray-200' : riskBg(riskLevel)
+          }`}>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Risk Level</p>
-            <p className={`text-lg font-extrabold leading-tight ${riskColor(riskLevel)}`}>{riskLevel}</p>
+            <p className={`text-lg font-extrabold leading-tight ${
+              leakDisplay.isNil ? 'text-gray-400' : riskColor(riskLevel)
+            }`}>
+              {leakDisplay.isNil ? '—' : riskLevel}
+            </p>
             <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">Risk Assessment</p>
           </div>
+
+          {/* Detected Section card
+               No-leak  → '—' in neutral grey
+               Leak      → derived section label in dark colour */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Detected Section</p>
-            <p className="text-sm font-extrabold text-gray-900 leading-tight">
-              {isGo ? 'None' : prediction.includes('Intake') && prediction.includes('Exhaust') ? 'Intake + Exhaust'
-                : prediction.includes('Intake') ? 'Intake System' : 'Exhaust System'}
+            <p className={`text-sm font-extrabold leading-tight ${
+              leakDisplay.isNil ? 'text-gray-400' : 'text-gray-900'
+            }`}>
+              {leakDisplay.sectionDisplay}
             </p>
             <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">Engine Section</p>
           </div>
@@ -161,103 +319,89 @@ export default function Results() {
             <MapPin className={`w-5 h-5 mt-0.5 shrink-0 ${isGo ? 'text-green-500' : 'text-red-500'}`} />
             <div>
               <p className="text-sm font-semibold text-gray-900">{leakLocation}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Severity:</span>
-                <span className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded ${
-                  riskLevel === 'Critical' ? 'bg-red-100 text-red-700' :
-                  riskLevel === 'High'     ? 'bg-orange-100 text-orange-700' :
-                  riskLevel === 'Medium'   ? 'bg-yellow-100 text-yellow-700' :
-                                             'bg-green-100 text-green-700'
-                }`}>{riskLevel}</span>
-              </div>
+              {/* Severity badge — hidden entirely when no leak */}
+              {!leakDisplay.isNil && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Severity:</span>
+                  <span className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded ${
+                    riskLevel === 'Critical' ? 'bg-red-100 text-red-700' :
+                    riskLevel === 'High'     ? 'bg-orange-100 text-orange-700' :
+                    riskLevel === 'Medium'   ? 'bg-yellow-100 text-yellow-700' :
+                                               'bg-green-100 text-green-700'
+                  }`}>{riskLevel}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         <Divider />
 
-        {/* ── 5 + 6. ENGINE DIAGRAM + REPAIR VIDEO ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* ── 5. ENGINE DIAGRAM ── */}
+        <div>
+          <SectionTitle>Leak Location Visualization</SectionTitle>
+          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+            {/* Header strip */}
+            <div className="bg-cat-black px-4 py-2.5 flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-cat-yellow">
+                {engineModel} — Air System Schematic
+              </span>
+              <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded ${
+                isGo ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+              }`}>
+                {isGo ? '✓ Clear' : '⚠ Leak'}
+              </span>
+            </div>
 
-          {/* Engine Diagram */}
-          <div>
-            <SectionTitle>Leak Location Visualization</SectionTitle>
-            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-              {/* Header strip */}
-              <div className="bg-cat-black px-4 py-2.5 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-cat-yellow">
-                  CAT {engineModel} — Air System Schematic
-                </span>
-                <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded ${
-                  isGo ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {isGo ? '✓ Clear' : '⚠ Leak'}
-                </span>
+            {/* Diagram wrapper — centred, aspect-ratio preserved, no overflow clip */}
+            <div
+              className="w-full flex items-center justify-center cursor-pointer group relative bg-white py-2 px-2"
+              onClick={() => setImageOpen(true)}
+            >
+              {/* SVG fills available width; height is auto via viewBox + preserveAspectRatio */}
+              <div className="w-full max-w-full">
+                <EngineDiagram engineModel={engineModel} prediction={prediction} isGo={isGo} />
               </div>
-
-              {/* Diagram — full width, aspect-ratio preserved */}
-              <div
-                className="w-full cursor-pointer group relative bg-white"
-                onClick={() => setImageOpen(true)}
-              >
-                <EngineDiagram
-                  engineModel={engineModel}
-                  prediction={prediction}
-                  isGo={isGo}
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/8 transition-all duration-200 flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-cat-black/85 text-white rounded-lg px-3 py-2 flex items-center gap-2 shadow-lg">
-                    <ZoomIn className="w-4 h-4" />
-                    <span className="text-xs font-semibold uppercase tracking-wider">View Full Diagram</span>
-                  </div>
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-200 flex items-center justify-center pointer-events-none">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-cat-black/85 text-white rounded-lg px-3 py-2 flex items-center gap-2 shadow-lg">
+                  <ZoomIn className="w-4 h-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">View Full Diagram</span>
                 </div>
               </div>
+            </div>
 
-              {/* Footer strip */}
-              <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-                <span className="text-[10px] text-gray-400">
-                  {isGo ? 'No leak markers' : leakLocation}
-                </span>
-                <button
-                  onClick={() => setImageOpen(true)}
-                  className="flex items-center gap-1.5 text-[11px] font-semibold text-cat-yellow hover:underline uppercase tracking-wider cursor-pointer"
-                >
-                  <ZoomIn className="w-3.5 h-3.5" />
-                  View Leak Location
-                </button>
-              </div>
+            {/* Footer strip */}
+            <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+              <span className="text-[10px] text-gray-400">
+                {isGo ? 'No Leak Location Identified' : leakLocation}
+              </span>
+              <button
+                onClick={() => setImageOpen(true)}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-cat-yellow hover:underline uppercase tracking-wider cursor-pointer"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+                View Leak Location
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Repair Video */}
-          <div>
-            <SectionTitle>Repair Guidance Video</SectionTitle>
-            <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50 h-full flex flex-col">
-              <div className="flex-1 flex items-center justify-center h-48 bg-gradient-to-br from-gray-100 to-gray-200">
-                <div className="text-center">
-                  <div
-                    className="w-14 h-14 rounded-full bg-cat-black/80 flex items-center justify-center mx-auto mb-3 cursor-pointer hover:bg-cat-yellow group transition-colors"
-                    onClick={() => alert('Video integration ready. Connect MP4 or YouTube link to enable playback.')}
-                  >
-                    <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white group-hover:fill-cat-black transition-colors ml-0.5">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    {isGo ? 'Routine Maintenance Guide' : `${prediction} Repair Tutorial`}
-                  </p>
-                </div>
-              </div>
-              <div className="px-4 py-3 border-t border-gray-200">
-                <button
-                  onClick={() => alert('Video integration ready. Connect MP4 or YouTube link to enable playback.')}
-                  className="w-full flex items-center justify-center gap-2 bg-cat-black text-white text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-                >
-                  <Video className="w-3.5 h-3.5" />
-                  Watch Repair Guide
-                </button>
-              </div>
-            </div>
+        <Divider />
+
+        {/* ── 6. REPAIR GUIDANCE LIBRARY (system-provided, read-only) ── */}
+        <div>
+          <div className="flex items-baseline justify-between mb-4">
+            <SectionTitle>Repair Guidance Library</SectionTitle>
+            {/* Contextual note — makes the read-only intent explicit to the operator */}
+            <span className="text-[10px] text-gray-400 uppercase tracking-wider">
+              System-provided · Read only
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {VIDEO_SLOTS.map((slot) => (
+              <RepairVideoCard key={slot.id} slot={slot} />
+            ))}
           </div>
         </div>
 
@@ -355,9 +499,9 @@ export default function Results() {
               </button>
             </div>
 
-            {/* Diagram — centered, responsive, aspect-ratio preserved */}
-            <div className="flex-1 overflow-auto bg-white flex items-center justify-center p-6">
-              <div className="w-full">
+            {/* Diagram — centred, aspect-ratio preserved, equal padding */}
+            <div className="flex-1 overflow-auto bg-white flex items-center justify-center p-4 sm:p-6">
+              <div className="w-full max-w-full">
                 <EngineDiagram
                   engineModel={engineModel}
                   prediction={prediction}
