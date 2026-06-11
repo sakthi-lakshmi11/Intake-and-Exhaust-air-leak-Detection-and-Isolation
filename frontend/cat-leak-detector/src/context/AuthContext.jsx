@@ -6,26 +6,9 @@ const MOCK_USERS_KEY = 'cat_mock_users';
 const SESSION_KEY = 'cat_active_session';
 
 const INITIAL_USERS = [
-  {
-    username: 'operator1',
-    email: 'operator1@gmail.com',
-    employeeId: 'EMP-1001',
-    fullName: 'David Miller',
-    role: 'Operator',
-    branch: 'Peoria HQ, IL',
-    department: 'Heavy Assembly',
-    password: '123456'
-  },
-  {
-    username: 'admin1',
-    email: 'admin1@gmail.com',
-    employeeId: 'EMP-9009',
-    fullName: 'Sarah Jenkins',
-    role: 'Administrator',
-    branch: 'Peoria HQ, IL',
-    department: 'Quality Assurance',
-    password: '123456'
-  }
+  { username: 'johnad', email: 'johnad@gmail.com', employeeId: 'EMP-0001', fullName: 'John Anderson', role: 'Admin', branch: 'Peoria HQ, IL', department: 'IT Administration', password: 'Admin@123', status: 'Active', createdAt: '2024-01-01T10:00:00Z', lastLogin: null },
+  { username: 'operator1', email: 'operator1@gmail.com', employeeId: 'EMP-1001', fullName: 'David Miller', role: 'Operator', branch: 'Peoria HQ, IL', department: 'Heavy Assembly', password: 'Operator@123', status: 'Active', createdAt: '2024-01-15T10:00:00Z', lastLogin: null },
+  { username: 'quality_manager', email: 'quality.manager@gmail.com', employeeId: 'EMP-9009', fullName: 'Sarah Jenkins', role: 'Administrator', branch: 'Peoria HQ, IL', department: 'Quality Assurance', password: 'Quality@123', status: 'Active', createdAt: '2024-01-15T10:00:00Z', lastLogin: null },
 ];
 
 export const AuthProvider = ({ children }) => {

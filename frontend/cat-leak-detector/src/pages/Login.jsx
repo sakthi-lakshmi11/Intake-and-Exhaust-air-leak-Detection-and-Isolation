@@ -24,7 +24,13 @@ export default function Login() {
     }
     const res = await login(identifier.trim(), password);
     if (res.success) {
-      navigate('/dashboard');
+      // Read session from localStorage to determine role & redirect
+      const session = JSON.parse(localStorage.getItem('cat_active_session'));
+      if (session && (session.role === 'Admin' || session.role === 'Administrator')) {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
       setError(res.message);
     }
@@ -75,23 +81,23 @@ export default function Login() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Username or Email */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email */}
               <div>
                 <label
-                  htmlFor="login-identifier"
+                  htmlFor="login-email"
                   className="block text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5"
                 >
-                  Username or Email
+                  Email
                 </label>
                 <input
-                  id="login-identifier"
-                  type="text"
+                  id="login-email"
+                  type="email"
                   required
-                  autoComplete="username"
+                  autoComplete="email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Enter username or email"
+                  placeholder="Enter your email address"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm font-normal placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50 focus:border-cat-yellow transition-all duration-200"
                 />
               </div>
