@@ -1,80 +1,126 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { getAnalyticsData, getSystemStatus } from '../services/adminMockData';
+import { useAdminAuth } from '../context/AdminAuthContext';
+import { getAnalyticsData, getRecentActivity, getReports } from '../services/adminMockData';
+import { migrateReportIds } from '../../services/api';
 import AdminLayout from '../components/AdminLayout';
-import {
-  Users, FileSearch, FileText, Settings, Video, HardDrive,
-  TrendingUp, TrendingDown, Activity, Cpu, Clock,
-  AlertTriangle, CheckCircle, RefreshCw
-} from 'lucide-react';
+import { Users, FileSearch, FileText, Activity, Clock, RefreshCw, ChevronRight, Database } from 'lucide-react';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
 
-function StatCard({ icon: Icon, label, value, sublabel, trend, color = 'cat-yellow', onClick }) {
-  const colorMap = {
-    'cat-yellow': 'bg-cat-yellow/10 border-cat-yellow/30 text-cat-yellow',
-    'blue': 'bg-blue-500/10 border-blue-500/30 text-blue-500',
-    'green': 'bg-green-500/10 border-green-500/30 text-green-500',
-    'purple': 'bg-purple-500/10 border-purple-500/30 text-purple-500',
-    'orange': 'bg-orange-500/10 border-orange-500/30 text-orange-500',
-  };
-  const colorClass = colorMap[color] || colorMap['cat-yellow'];
-
+function StatCard({ icon: Icon, label, value, onClick, highlight = false }) {
   return (
-    <div
-      onClick={onClick}
-      className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg hover:border-cat-yellow/30 transition-all duration-200 cursor-pointer group"
-    >
-      <div className="flex items-start justify-between">
-        <div className={`w-10 h-10 rounded-lg ${colorClass} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-          <Icon className="w-5 h-5" />
+    <div onClick={onClick} className={`bg-white border border-gray-200 rounded-lg p-5 hover:border-[#FFCD11]/50 transition-all cursor-pointer group ${highlight ? 'border-l-2 border-l-[#FFCD11]' : ''}`}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center group-hover:bg-[#FFCD11]/10 transition-colors">
+          <Icon className="w-5 h-5 text-gray-600 group-hover:text-[#FFCD11]" />
         </div>
-        {trend && (
-          <div className={`flex items-center gap-1 text-[10px] font-semibold ${trend.isUp ? 'text-green-500' : 'text-red-500'}`}>
-            {trend.isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {trend.value}
-          </div>
-        )}
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">{label}</p>
       </div>
-      <div className="mt-3">
-        <p className="text-2xl font-extrabold text-gray-900">{value}</p>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mt-1">{label}</p>
-        {sublabel && <p className="text-[10px] text-gray-400 mt-0.5">{sublabel}</p>}
-      </div>
+      <p className="text-2xl font-extrabold text-gray-900">{value}</p>
     </div>
   );
 }
 
+function ActivityItem({ activity }) {
+  const icons = { 'User Login': Users, 'Analysis Execution': FileSearch, 'Report Generated': FileText };
+  const Icon = icons[activity.type] || Activity;
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000 / 60);
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return `${diff}m ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  return (
+    <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
+      <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center shrink-0">
+        <Icon className="w-4 h-4 text-gray-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-gray-900">
+          <span className="font-semibold">{activity.user}</span> {activity.type === 'User Login' ? 'logged in' : activity.type === 'Analysis Execution' ? 'ran analysis' : 'generated report'}
+        </p>
+        <p className="text-[10px] text-gray-500 truncate">{activity.details}</p>
+      </div>
+      <p className="text-[10px] text-gray-400 whitespace-nowrap">{formatTime(activity.timestamp)}</p>
+    </div>
+  );
+}
+
+function ReportRow({ report }) {
+  const getLeakColor = (prediction) => {
+    if (!prediction) return 'bg-gray-100 text-gray-600';
+    if (prediction.includes('No Leak')) return 'bg-green-100 text-green-700';
+    if (prediction.includes('Intake')) return 'bg-orange-100 text-orange-700';
+    if (prediction.includes('Exhaust')) return 'bg-red-100 text-red-700';
+    return 'bg-gray-100 text-gray-600';
+  };
+
+  const getRiskColor = (riskLevel) => {
+    if (!riskLevel) return 'bg-gray-100 text-gray-600';
+    if (riskLevel === 'Critical') return 'bg-red-100 text-red-700';
+    if (riskLevel === 'High') return 'bg-orange-100 text-orange-700';
+    if (riskLevel === 'Medium') return 'bg-yellow-100 text-yellow-700';
+    return 'bg-green-100 text-green-700';
+  };
+
+  return (
+    <tr className="hover:bg-gray-50 transition-colors">
+      <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-800">{report.id}</td>
+      <td className="px-4 py-3 text-xs text-gray-700">{report.technician || '—'}</td>
+      <td className="px-4 py-3 text-xs text-gray-700">{report.engineModel || '—'}</td>
+      <td className="px-4 py-3">
+        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${getLeakColor(report.prediction)}`}>
+          {report.prediction || '—'}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-xs text-gray-700">{report.confidence ? `${report.confidence}%` : '—'}</td>
+      <td className="px-4 py-3">
+        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${getRiskColor(report.riskLevel)}`}>
+          {report.riskLevel || '—'}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-xs text-gray-500">{report.timestamp ? new Date(report.timestamp).toLocaleTimeString() : '—'}</td>
+    </tr>
+  );
+}
+
 export default function AdminDashboard() {
-  const { currentUser } = useAuth();
+  const { currentAdmin } = useAdminAuth();
   const navigate = useNavigate();
   const [analytics, setAnalytics] = useState(null);
-  const [systemStatus, setSystemStatus] = useState(null);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [recentReports, setRecentReports] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [migratedCount, setMigratedCount] = useState(0);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = () => {
     setAnalytics(getAnalyticsData());
-    setSystemStatus(getSystemStatus());
+    setRecentActivity(getRecentActivity());
+    setRecentReports(getReports().slice(0, 8));
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      loadData();
-      setRefreshing(false);
-    }, 800);
+  const handleMigrateIds = () => {
+    const result = migrateReportIds();
+    setMigratedCount(result.migrated);
+    loadData();
   };
 
-  if (!analytics || !systemStatus) {
+  const handleRefresh = () => { setRefreshing(true); loadData(); setTimeout(() => setRefreshing(false), 800); };
+
+  if (!analytics) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-cat-yellow border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#FFCD11] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -82,216 +128,95 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="p-4 lg:p-6" style={FONT}>
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="p-6" style={FONT}>
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-extrabold text-gray-900 uppercase tracking-tight">
-              System Dashboard
-            </h1>
-            <p className="text-xs text-gray-500 mt-1">
-              Welcome back, {currentUser?.fullName} — {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
+            <h1 className="text-lg font-extrabold text-gray-900 uppercase tracking-tight">Diagnostics Operations</h1>
+            <p className="text-xs text-gray-500 mt-1">Real-time monitoring of Caterpillar engine leak detection system</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/30 rounded-lg">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wider">All Systems Operational</span>
-            </div>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer"
-            >
+            {migratedCount > 0 && (
+              <span className="text-[10px] text-green-600 font-semibold">{migratedCount} IDs migrated</span>
+            )}
+            <button onClick={handleMigrateIds} className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors" title="Migrate legacy IDs">
+              <Database className="w-3.5 h-3.5" />
+              Fix IDs
+            </button>
+            <button onClick={handleRefresh} disabled={refreshing} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard
-            icon={Users}
-            label="Total Users"
-            value={analytics.totalUsers}
-            sublabel={`${analytics.activeUsers} active`}
-            trend={{ isUp: true, value: '12%' }}
-            color="cat-yellow"
-            onClick={() => navigate('/admin/users')}
-          />
-          <StatCard
-            icon={FileSearch}
-            label="Total Analyses"
-            value={analytics.totalAnalyses}
-            sublabel={`${analytics.dailyAnalyses} today`}
-            trend={{ isUp: analytics.dailyAnalyses > 3, value: analytics.dailyAnalyses > 3 ? '8%' : '3%' }}
-            color="blue"
-            onClick={() => navigate('/admin/analyses')}
-          />
-          <StatCard
-            icon={FileText}
-            label="Total Reports"
-            value={analytics.totalReports}
-            sublabel="Generated documents"
-            color="green"
-            onClick={() => navigate('/admin/reports')}
-          />
-          <StatCard
-            icon={Settings}
-            label="Engine Models"
-            value={analytics.totalEngineModels}
-            sublabel={`${analytics.mostTestedEngine} most tested`}
-            color="purple"
-            onClick={() => navigate('/admin/engines')}
-          />
+          <StatCard icon={Users} label="Total Operators" value={analytics.totalUsers} onClick={() => navigate('/admin/users')} highlight />
+          <StatCard icon={Users} label="Active Operators" value={analytics.activeUsers} onClick={() => navigate('/admin/users')} />
+          <StatCard icon={FileSearch} label="Total Analyses" value={analytics.totalAnalyses} onClick={() => navigate('/admin/analyses')} />
+          <StatCard icon={FileText} label="Total Reports" value={analytics.totalReports} onClick={() => navigate('/admin/reports')} />
         </div>
 
-        {/* Second row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard
-            icon={Video}
-            label="Total Videos"
-            value={analytics.totalVideos}
-            sublabel="Repair guidance library"
-            color="orange"
-            onClick={() => navigate('/admin/videos')}
-          />
-          <StatCard
-            icon={HardDrive}
-            label="Storage Used"
-            value={`${analytics.totalStorageMB} MB`}
-            sublabel="Total system storage"
-          />
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">Most Common Leak</p>
-            <p className="text-lg font-extrabold text-gray-900">{analytics.mostCommonLeak}</p>
-            <p className="text-[10px] text-gray-400 mt-1">Across all analyses</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 bg-white border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Recent Activity</h2>
+              <Activity className="w-4 h-4 text-gray-400" />
+            </div>
+            <div className="px-5 py-3">
+              {recentActivity.length === 0 ? (
+                <p className="text-xs text-gray-500 py-4 text-center">No recent activity</p>
+              ) : (
+                recentActivity.map(act => <ActivityItem key={act.id} activity={act} />)
+              )}
+            </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">Analysis Trends</p>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Daily</span>
-                <span className="font-bold text-gray-900">{analytics.dailyAnalyses}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Weekly</span>
-                <span className="font-bold text-gray-900">{analytics.weeklyAnalyses}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Monthly</span>
-                <span className="font-bold text-gray-900">{analytics.monthlyAnalyses}</span>
-              </div>
+
+          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Recent Reports</h2>
+              <button onClick={() => navigate('/admin/reports')} className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-700 transition-colors">
+                View All <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Report ID</th>
+                    <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Operator</th>
+                    <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Engine</th>
+                    <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Result</th>
+                    <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Confidence</th>
+                    <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Risk</th>
+                    <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentReports.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-8 text-center text-xs text-gray-500">No reports generated</td></tr>
+                  ) : (
+                    recentReports.map(r => <ReportRow key={r.id} report={r} />)
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
 
-        {/* Daily Trend Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">Daily Analysis Trend (30 Days)</h3>
-              <Activity className="w-4 h-4 text-cat-yellow" />
+        <div className="mt-6 bg-white border border-gray-200 rounded-lg p-5">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-3">Engine Insights</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Most Tested Engine</p>
+              <p className="text-lg font-extrabold text-gray-900 mt-1">{analytics.mostTestedEngine}</p>
             </div>
-            <div className="h-48 flex items-end gap-1">
-              {analytics.dailyTrend.map((day, i) => {
-                const maxCount = Math.max(...analytics.dailyTrend.map(d => d.count), 1);
-                const height = (day.count / maxCount) * 100;
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1 group relative">
-                    <div
-                      className="w-full bg-cat-yellow/30 hover:bg-cat-yellow/60 transition-colors rounded-t"
-                      style={{ height: `${Math.max(height, 2)}%` }}
-                    />
-                    {day.count > 0 && (
-                      <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {day.count}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Most Common Leak</p>
+              <p className="text-lg font-extrabold text-gray-900 mt-1">{analytics.mostCommonLeak}</p>
             </div>
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-[9px] text-gray-400">{analytics.dailyTrend[0]?.date}</span>
-              <span className="text-[9px] text-gray-400">{analytics.dailyTrend[analytics.dailyTrend.length - 1]?.date}</span>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Engine Models Tracked</p>
+              <p className="text-lg font-extrabold text-gray-900 mt-1">{analytics.totalEngineModels}</p>
             </div>
-          </div>
-
-          {/* System Status */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700">System Status</h3>
-              <Cpu className="w-4 h-4 text-cat-yellow" />
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Status</span>
-                <span className="flex items-center gap-1.5 text-green-500 font-semibold">
-                  <CheckCircle className="w-3 h-3" />
-                  {systemStatus.status}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Uptime</span>
-                <span className="text-gray-800 font-semibold">{systemStatus.uptime}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">API Latency</span>
-                <span className="text-gray-800 font-semibold">{systemStatus.apiLatency}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Active Sessions</span>
-                <span className="text-gray-800 font-semibold">{systemStatus.activeSessions}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">CPU</span>
-                <span className="text-gray-800 font-semibold">{systemStatus.cpuUsage}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Memory</span>
-                <span className="text-gray-800 font-semibold">{systemStatus.memoryUsage}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500">Last Backup</span>
-                <span className="text-gray-800 font-semibold text-[10px]">{systemStatus.lastBackup}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <button
-              onClick={() => navigate('/admin/users')}
-              className="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:border-cat-yellow/30 transition-all text-left cursor-pointer"
-            >
-              <Users className="w-4 h-4 text-cat-yellow mb-1.5" />
-              <p className="text-[11px] font-semibold text-gray-700">Manage Users</p>
-            </button>
-            <button
-              onClick={() => navigate('/admin/analyses')}
-              className="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:border-cat-yellow/30 transition-all text-left cursor-pointer"
-            >
-              <FileSearch className="w-4 h-4 text-blue-500 mb-1.5" />
-              <p className="text-[11px] font-semibold text-gray-700">View Analyses</p>
-            </button>
-            <button
-              onClick={() => navigate('/admin/system-reports')}
-              className="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:border-cat-yellow/30 transition-all text-left cursor-pointer"
-            >
-              <FileText className="w-4 h-4 text-green-500 mb-1.5" />
-              <p className="text-[11px] font-semibold text-gray-700">Generate Report</p>
-            </button>
-            <button
-              onClick={() => navigate('/admin/audit-logs')}
-              className="p-3 rounded-lg bg-gray-50 border border-gray-200 hover:border-cat-yellow/30 transition-all text-left cursor-pointer"
-            >
-              <Activity className="w-4 h-4 text-purple-500 mb-1.5" />
-              <p className="text-[11px] font-semibold text-gray-700">Audit Logs</p>
-            </button>
           </div>
         </div>
       </div>

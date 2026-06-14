@@ -7,70 +7,70 @@ const REPORTS_STORAGE_KEY = 'cat_diagnostics_reports';
 const getMockReports = () => {
   const data = localStorage.getItem(REPORTS_STORAGE_KEY);
   if (data) return JSON.parse(data);
-  // Default reports history to show initially
-  const defaultReports = [
-    {
-      id: 'REP-7401',
-      timestamp: new Date(Date.now() - 3600000 * 24 * 3).toLocaleString(),
-      technician: 'David Miller',
-      role: 'Operator',
-      branch: 'Peoria HQ, IL',
-      prediction: 'No Leak',
-      status: 'GO',
-      confidence: 98.4,
-      riskLevel: 'Low',
-      inputs: {
-        fuelInjectionTime: 1.8,
-        rpm: 1500,
-        fuelRate: 220,
-        injectionPressure: 1400,
-        maf: 450,
-        map: 2.1,
-        mat: 45,
-        deltaP: 85,
-        turboInletP: 1.0,
-        turbineInletP: 1.8,
-        egt: 520,
-        nox: 180
-      },
-      recommendations: ['Perform routine visual checks', 'Verify pressure leak sensors integrity']
-    },
-    {
-      id: 'REP-7402',
-      timestamp: new Date(Date.now() - 3600000 * 24).toLocaleString(),
-      technician: 'David Miller',
-      role: 'Operator',
-      branch: 'Peoria HQ, IL',
-      prediction: 'Intake Leak',
-      status: 'NON-GO',
-      confidence: 91.2,
-      riskLevel: 'Medium',
-      inputs: {
-        fuelInjectionTime: 2.2,
-        rpm: 1800,
-        fuelRate: 280,
-        injectionPressure: 1550,
-        maf: 310, // low maf for this RPM
-        map: 1.4, // low manifold boost pressure
-        mat: 58,
-        deltaP: 180, // high pressure drop
-        turboInletP: 0.9,
-        turbineInletP: 1.5,
-        egt: 590,
-        nox: 210
-      },
-      recommendations: ['Inspect intake manifold gaskets', 'Check turbocharger outlet flexible hoses', 'Verify intercooler piping clamps']
+  return [];
+};
+
+const getNextSequence = () => {
+  const reports = getMockReports();
+  let maxSeq = 0;
+  reports.forEach(r => {
+    const match = r.id?.match(/^REP-(\d+)$/);
+    if (match) {
+      const seq = parseInt(match[1], 10);
+      if (seq > maxSeq) maxSeq = seq;
     }
-  ];
-  localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(defaultReports));
-  return defaultReports;
+  });
+  return maxSeq + 1;
 };
 
 const saveMockReport = (report) => {
   const current = getMockReports();
-  const updated = [report, ...current];
+  const nextSeq = getNextSequence();
+  // TODO: Replace with /api/reports POST when backend generates report IDs
+  const reportWithId = {
+    ...report,
+    id: `REP-${String(nextSeq).padStart(4, '0')}`,
+    analysisId: `ANL-${String(nextSeq).padStart(4, '0')}`
+  };
+  const updated = [reportWithId, ...current];
   localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated));
-  return updated;
+  // TODO: Replace with /api/users/:username/activity PATCH for backend
+  // Update user lastActivity - operator activity tracking
+  if (report.technician) {
+    const usersKey = 'cat_mock_users';
+    const users = localStorage.getItem(usersKey);
+    if (users) {
+      try {
+        const parsed = JSON.parse(users);
+        const now = new Date().toISOString();
+        const updatedUsers = parsed.map(u =>
+          u.fullName === report.technician ? { ...u, lastActivity: now } : u
+        );
+        localStorage.setItem(usersKey, JSON.stringify(updatedUsers));
+      } catch { /* ignore */ }
+    }
+  }
+  return reportWithId;
+};
+
+export const migrateReportIds = () => {
+  const reports = getMockReports();
+  if (reports.length === 0) return { migrated: 0 };
+
+  const sorted = [...reports].sort((a, b) => {
+    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+    return timeA - timeB;
+  });
+
+  const remapped = sorted.map((r, idx) => ({
+    ...r,
+    id: `REP-${String(idx + 1).padStart(4, '0')}`,
+    analysisId: `ANL-${String(idx + 1).padStart(4, '0')}`
+  }));
+
+  localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(remapped));
+  return { migrated: reports.length };
 };
 
 // API Client Layer
@@ -112,6 +112,7 @@ export const api = {
   },
 
   // GET /api/reports
+  // TODO: Replace localStorage with real API call
   getReports: async () => {
     if (!USE_MOCK_API) {
       try {
@@ -127,6 +128,7 @@ export const api = {
   },
 
   // POST /api/predict
+  // TODO: Replace localStorage with real API call
   predict: async (inputs, technicianInfo) => {
     if (!USE_MOCK_API) {
       try {
@@ -216,7 +218,6 @@ export const api = {
     }
 
     const newReport = {
-      id: `REP-${Math.floor(1000 + Math.random() * 9000)}`,
       timestamp: new Date().toLocaleString(),
       technician: technicianInfo?.fullName || 'Operator',
       role: technicianInfo?.role || 'Operator',
@@ -236,7 +237,7 @@ export const api = {
       recommendations
     };
 
-    saveMockReport(newReport);
-    return { success: true, data: newReport };
+    const savedReport = saveMockReport(newReport);
+    return { success: true, data: savedReport };
   }
 };

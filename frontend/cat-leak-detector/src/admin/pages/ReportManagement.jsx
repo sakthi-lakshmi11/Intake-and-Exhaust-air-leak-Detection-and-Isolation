@@ -1,165 +1,223 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import { Search, Download, Eye, X, ChevronDown } from 'lucide-react';
 import { getReports } from '../services/adminMockData';
-import { FileText, Search, Download, Filter, ChevronDown, Eye, Clock, User, Calendar } from 'lucide-react';
+import { generateDiagnosticPDF } from '../../services/pdfReport';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
+
+// TODO: Replace with /api/reports for admin report management
+// API ENDPOINTS: /api/reports (GET), /api/reports/:id (GET)
+// TODO: Remove sequential ID generation - database will generate UUIDs
+
+function SortHeader({ field, sortBy, sortDir, onSort, children }) {
+  return (
+    <th onClick={() => onSort(field)}
+      className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-gray-700 select-none bg-gray-50"
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortBy === field && (
+          <ChevronDown className={`w-3 h-3 transition-transform ${sortDir === 'asc' ? 'rotate-180' : ''}`} />
+        )}
+      </div>
+    </th>
+  );
+}
 
 export default function ReportManagement() {
   const [reports, setReports] = useState([]);
   const [search, setSearch] = useState('');
-  const [filterPrediction, setFilterPrediction] = useState('All');
-  const [filterEngine, setFilterEngine] = useState('All');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 15;
+  const [sortBy, setSortBy] = useState('timestamp');
+  const [sortDir, setSortDir] = useState('desc');
+  const [selectedReport, setSelectedReport] = useState(null);
 
-  useEffect(() => { setReports(getReports()); }, []);
+  useEffect(() => {
+    setReports(getReports());
+  }, []);
 
-  const filtered = reports.filter(r => {
-    const matchSearch = !search ||
-      r.id?.toLowerCase().includes(search.toLowerCase()) ||
-      r.technician?.toLowerCase().includes(search.toLowerCase()) ||
-      r.engineModel?.toLowerCase().includes(search.toLowerCase());
-    const matchPred = filterPrediction === 'All' || r.prediction === filterPrediction;
-    const matchEngine = filterEngine === 'All' || r.engineModel === filterEngine;
-    let matchDate = true;
-    if (dateFrom && r.timestamp) matchDate = matchDate && new Date(r.timestamp) >= new Date(dateFrom);
-    if (dateTo && r.timestamp) matchDate = matchDate && new Date(r.timestamp) <= new Date(dateTo + 'T23:59:59');
-    return matchSearch && matchPred && matchEngine && matchDate;
+  const filtered = reports.filter(r =>
+    !search ||
+    r.id?.toLowerCase().includes(search.toLowerCase()) ||
+    r.technician?.toLowerCase().includes(search.toLowerCase()) ||
+    r.engineModel?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const sorted = [...filtered].sort((a, b) => {
+    const valA = a[sortBy] || '';
+    const valB = b[sortBy] || '';
+    if (sortBy === 'timestamp') {
+      const dateA = valA ? new Date(valA).getTime() : 0;
+      const dateB = valB ? new Date(valB).getTime() : 0;
+      if (dateA < dateB) return sortDir === 'asc' ? -1 : 1;
+      if (dateA > dateB) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    }
+    if (String(valA).toLowerCase() < String(valB).toLowerCase()) return sortDir === 'asc' ? -1 : 1;
+    if (String(valA).toLowerCase() > String(valB).toLowerCase()) return sortDir === 'asc' ? 1 : -1;
+    return 0;
   });
 
-  const sorted = [...filtered].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  const totalPages = Math.ceil(sorted.length / perPage);
-  const paginated = sorted.slice((currentPage - 1) * perPage, currentPage * perPage);
-
-  const downloadReport = (report) => {
-    const content = JSON.stringify(report, null, 2);
-    const blob = new Blob([content], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `${report.id}_report.json`; a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const getStatusBadge = (prediction) => {
-    const colors = {
-      'No Leak': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-      'Intake Leak': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
-      'Exhaust Leak': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-      'Combined Leak': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-    };
-    return colors[prediction] || 'bg-gray-100 text-gray-700';
+  const handleDownload = (report) => {
+    generateDiagnosticPDF(report, { fullName: report.technician });
   };
 
   return (
     <AdminLayout>
-      <div className="p-4 lg:p-6" style={FONT}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="p-6" style={FONT}>
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-extrabold text-gray-900 dark:text-white uppercase tracking-tight">Report Management</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{reports.length} total reports</p>
+            <h1 className="text-xl font-extrabold text-gray-900 uppercase tracking-tight">Diagnostic Reports</h1>
+            <p className="text-xs text-gray-500 mt-1">{reports.length} Total Reports</p>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-4">
-          <div className="flex flex-col sm:flex-row items-start gap-4">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                placeholder="Search reports..." className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50" />
-            </div>
-            <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap">
-              <select value={filterPrediction} onChange={e => { setFilterPrediction(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50">
-                <option value="All">All Diagnoses</option>
-                <option value="No Leak">No Leak</option>
-                <option value="Intake Leak">Intake Leak</option>
-                <option value="Exhaust Leak">Exhaust Leak</option>
-                <option value="Combined Leak">Combined Leak</option>
-              </select>
-              <select value={filterEngine} onChange={e => { setFilterEngine(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50">
-                <option value="All">All Engines</option>
-                <option value="C7">C7</option>
-                <option value="C15">C15</option>
-              </select>
-              <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50" />
-              <span className="text-xs text-gray-400">to</span>
-              <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setCurrentPage(1); }}
-                className="px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50" />
-            </div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search reports..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFCD11]/50"
+            />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+              <thead className="border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Report ID</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">User</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Engine</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Diagnosis</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Confidence</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Timestamp</th>
+                  <SortHeader field="id" sortBy={sortBy} sortDir={sortDir} onSort={setSortBy}>Report ID</SortHeader>
+                  <SortHeader field="technician" sortBy={sortBy} sortDir={sortDir} onSort={setSortBy}>Operator</SortHeader>
+                  <SortHeader field="engineModel" sortBy={sortBy} sortDir={sortDir} onSort={setSortBy}>Engine</SortHeader>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Result</th>
+                  <SortHeader field="confidence" sortBy={sortBy} sortDir={sortDir} onSort={setSortBy}>Confidence</SortHeader>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Risk Level</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Time</th>
                   <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {paginated.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-12 text-center text-sm text-gray-500">No reports found</td></tr>
-                ) : paginated.map((r, i) => (
-                  <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td className="px-4 py-3.5">
-                      <span className="text-xs font-semibold text-gray-900 dark:text-white font-mono">{r.id}</span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{r.technician}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{r.engineModel || 'C7'}</span>
-                      {r.engineVersionLabel && <span className="text-[10px] text-gray-400 ml-1">{r.engineVersionLabel}</span>}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${getStatusBadge(r.prediction)}`}>{r.prediction}</span>
-                    </td>
-                    <td className="px-4 py-3.5 text-sm font-semibold text-gray-900 dark:text-white">{r.confidence}%</td>
-                    <td className="px-4 py-3.5 text-xs text-gray-500">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3 h-3" />
-                        {r.timestamp}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <button onClick={() => downloadReport(r)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-                        <Download className="w-3 h-3" /> Download
-                      </button>
+              <tbody className="divide-y divide-gray-100">
+                {sorted.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-500">
+                      {reports.length === 0 ? 'No reports generated' : 'No matches found'}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  sorted.map((r, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-xs font-mono font-semibold text-gray-800">{r.id}</td>
+                      <td className="px-4 py-3 text-xs text-gray-700">{r.technician || '—'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-700">{r.engineModel || '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                          r.prediction === 'No Leak' ? 'bg-green-100 text-green-700' :
+                          r.prediction?.includes('Intake') ? 'bg-orange-100 text-orange-700' :
+                          r.prediction?.includes('Exhaust') ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {r.prediction || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-600">{r.confidence ? `${r.confidence}%` : '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                          r.riskLevel === 'Critical' ? 'bg-red-100 text-red-700' :
+                          r.riskLevel === 'High' ? 'bg-orange-100 text-orange-700' :
+                          r.riskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {r.riskLevel || '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-500">
+                        {r.timestamp ? new Date(r.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => setSelectedReport(r)}
+                            className="p-1.5 rounded text-gray-500 hover:text-[#FFCD11] hover:bg-[#FFCD11]/10 transition-colors" title="View"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDownload(r)}
+                            className="p-1.5 rounded text-gray-500 hover:text-blue-600 hover:bg-blue-100/50 transition-colors" title="Download"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-xs text-gray-500">Showing {(currentPage - 1) * perPage + 1} to {Math.min(currentPage * perPage, sorted.length)} of {sorted.length}</p>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button key={i} onClick={() => setCurrentPage(i + 1)}
-                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors cursor-pointer ${currentPage === i + 1 ? 'bg-cat-yellow text-cat-black' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>{i + 1}</button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {selectedReport && (
+        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-end" onClick={() => setSelectedReport(null)}>
+          <div className="bg-white h-full w-full max-w-md shadow-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900">Report Details</h2>
+              <button onClick={() => setSelectedReport(null)} className="p-1 rounded text-gray-500 hover:text-gray-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Report ID</p>
+                  <p className="text-xs font-mono font-bold text-gray-900 mt-1">{selectedReport.id}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Analysis ID</p>
+                  <p className="text-xs font-mono text-gray-600 mt-1">{selectedReport.analysisId || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Operator</p>
+                  <p className="text-xs text-gray-900 mt-1">{selectedReport.technician}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Engine</p>
+                  <p className="text-xs text-gray-900 mt-1">{selectedReport.engineModel}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Confidence</p>
+                  <p className="text-xs text-gray-900 mt-1">{selectedReport.confidence}%</p>
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Generated</p>
+                  <p className="text-xs text-gray-900 mt-1">
+                    {selectedReport.timestamp ? new Date(selectedReport.timestamp).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+              </div>
+
+              {selectedReport.leakTypes && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-700 mb-2">Leak Types</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedReport.leakTypes.map((lt, i) => (
+                      <span key={i} className="px-2 py-1 bg-red-100 text-red-700 rounded text-[10px] font-semibold uppercase">
+                        {lt}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+              <button onClick={() => setSelectedReport(null)} className="px-4 py-2 text-xs font-semibold text-gray-500 hover:text-gray-700">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

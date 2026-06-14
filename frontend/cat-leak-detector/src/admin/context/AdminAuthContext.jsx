@@ -8,73 +8,6 @@ const ADMIN_SESSION_KEY = 'cat_admin_session';
 const ADMIN_AUDIT_KEY = 'cat_admin_audit_log';
 const ADMIN_LOCKOUT_KEY = 'cat_admin_lockout';
 
-// Default admin credentials (hashed password simulation)
-const DEFAULT_ADMIN = {
-  id: 'ADM-001',
-  username: 'admin',
-  email: 'admin@caterpillar.com',
-  fullName: 'System Administrator',
-  role: 'Super Admin',
-  password: 'Admin@123456', // In production this would be hashed with bcrypt
-  status: 'Active',
-  createdAt: new Date('2024-01-01').toISOString(),
-  lastLogin: null,
-  permissions: [
-    'users.read', 'users.write', 'users.delete',
-    'analysis.read', 'analysis.export',
-    'reports.read', 'reports.download',
-    'engines.read', 'engines.write', 'engines.delete',
-    'leakzones.read', 'leakzones.write',
-    'videos.read', 'videos.write', 'videos.delete',
-    'audit.read',
-    'system.read',
-  ]
-};
-
-const GENERIC_ADMINS = [
-  {
-    id: 'ADM-002',
-    username: 'quality_manager',
-    email: 'quality@caterpillar.com',
-    fullName: 'James Wilson',
-    role: 'Quality Manager',
-    password: 'Quality@123',
-    status: 'Active',
-    createdAt: new Date('2024-03-15').toISOString(),
-    lastLogin: null,
-    permissions: [
-      'users.read',
-      'analysis.read', 'analysis.export',
-      'reports.read', 'reports.download',
-      'engines.read',
-      'leakzones.read',
-      'videos.read',
-      'audit.read',
-      'system.read',
-    ]
-  },
-  {
-    id: 'ADM-003',
-    username: 'engine_specialist',
-    email: 'engine.spec@caterpillar.com',
-    fullName: 'Maria Garcia',
-    role: 'Engine Specialist',
-    password: 'Engine@123',
-    status: 'Active',
-    createdAt: new Date('2024-06-01').toISOString(),
-    lastLogin: null,
-    permissions: [
-      'users.read',
-      'analysis.read', 'analysis.export',
-      'reports.read', 'reports.download',
-      'engines.read', 'engines.write',
-      'leakzones.read', 'leakzones.write',
-      'videos.read',
-      'system.read',
-    ]
-  }
-];
-
 // Password strength validator
 export const validatePasswordStrength = (password) => {
   const errors = [];
@@ -92,8 +25,8 @@ const addAuditLog = (user, action, details = '') => {
     const logs = JSON.parse(localStorage.getItem(ADMIN_AUDIT_KEY) || '[]');
     logs.unshift({
       id: `AUD-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      userId: user.id,
-      userName: user.fullName || user.username,
+      userId: user?.id || 'unknown',
+      userName: user?.fullName || user?.username || 'unknown',
       action,
       details,
       timestamp: new Date().toISOString(),
@@ -114,16 +47,15 @@ export const AdminAuthProvider = ({ children }) => {
       const saved = localStorage.getItem(ADMIN_USERS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Migrate: ensure permissions are set for existing users if missing
         return parsed.map(u => ({
           ...u,
-          permissions: u.permissions || DEFAULT_ADMIN.permissions,
+          permissions: u.permissions || [],
           status: u.status || 'Active',
         }));
       }
     } catch (e) { /* ignore */ }
-    localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify([DEFAULT_ADMIN, ...GENERIC_ADMINS]));
-    return [DEFAULT_ADMIN, ...GENERIC_ADMINS];
+    // Initialize with empty array - admin users must be added via addAdminUser
+    return [];
   });
 
   const [currentAdmin, setCurrentAdmin] = useState(() => {
@@ -389,7 +321,7 @@ export const AdminAuthProvider = ({ children }) => {
 
   // Clear audit logs (super admin only)
   const clearAuditLogs = () => {
-    if (currentAdmin.role !== 'Super Admin') {
+    if (!currentAdmin || currentAdmin.role !== 'Super Admin') {
       return { success: false, message: 'Permission denied.' };
     }
     localStorage.setItem(ADMIN_AUDIT_KEY, '[]');

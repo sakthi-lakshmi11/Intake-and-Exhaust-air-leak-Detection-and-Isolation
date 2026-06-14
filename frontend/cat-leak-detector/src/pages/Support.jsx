@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { HelpCircle, ChevronDown, BookOpen, Wrench, Monitor, Ticket } from 'lucide-react';
+import { CheckCircle2, HelpCircle, ChevronDown, BookOpen, Wrench, Monitor, Ticket } from 'lucide-react';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
 

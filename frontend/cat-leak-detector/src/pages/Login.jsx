@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAdminAuth } from '../admin/context/AdminAuthContext';
 import { Eye, EyeOff, AlertCircle, Cpu } from 'lucide-react';
 import CaterpillarLogo from '../components/CaterpillarLogo';
 
@@ -8,6 +9,7 @@ const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
 
 export default function Login() {
   const { login, loadingMsg } = useAuth();
+  const { adminLogin, adminLoading } = useAdminAuth();
   const navigate = useNavigate();
 
   const [identifier, setIdentifier] = useState('');
@@ -18,21 +20,26 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
     if (!identifier.trim() || !password) {
       setError('Please fill in all fields.');
       return;
     }
-    const res = await login(identifier.trim(), password);
-    if (res.success) {
-      // Read session from localStorage to determine role & redirect
-      const session = JSON.parse(localStorage.getItem('cat_active_session'));
-      if (session && (session.role === 'Admin' || session.role === 'Administrator')) {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+
+    // Try admin login first
+    const adminRes = await adminLogin(identifier.trim(), password);
+    
+    if (adminRes?.success) {
+      return navigate('/admin/dashboard');
+    }
+
+    // Fall back to operator login
+    const operatorRes = await login(identifier.trim(), password);
+
+    if (operatorRes?.success) {
+      navigate('/dashboard');
     } else {
-      setError(res.message);
+      setError(operatorRes?.message || adminRes?.message || 'Invalid credentials');
     }
   };
 
@@ -42,14 +49,16 @@ export default function Login() {
       style={FONT}
     >
       {/* Loading overlay */}
-      {loadingMsg && (
+      {(loadingMsg || adminLoading) && (
         <div className="fixed inset-0 z-50 bg-cat-black/95 flex flex-col items-center justify-center gap-4">
           <div className="relative w-14 h-14">
             <div className="absolute inset-0 rounded-full border-4 border-gray-800" />
             <div className="absolute inset-0 rounded-full border-4 border-cat-yellow border-t-transparent animate-spin" />
             <Cpu className="w-5 h-5 text-cat-yellow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
-          <p className="text-white text-xs font-semibold uppercase tracking-widest">{loadingMsg}</p>
+          <p className="text-white text-xs font-semibold uppercase tracking-widest">
+            {loadingMsg || 'Authenticating...'}
+          </p>
         </div>
       )}
 
@@ -81,7 +90,7 @@ export default function Login() {
               </div>
             )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Email */}
               <div>
                 <label

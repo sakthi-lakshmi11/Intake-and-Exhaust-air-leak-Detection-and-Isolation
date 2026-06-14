@@ -1,33 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { useAuth } from '../../context/AuthContext';
+import { useAdminAuth } from '../context/AdminAuthContext';
 import { getEngines, addEngine, updateEngine, deleteEngine } from '../services/adminMockData';
-import { Settings, Search, Plus, Edit, Trash2, X, ChevronDown, AlertCircle, Save } from 'lucide-react';
+import { Settings, Search, Plus, Edit, Trash2, X, Save, ChevronDown } from 'lucide-react';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
 
-const addAuditLog = (user, action, details = '') => {
-  try {
-    const logs = JSON.parse(localStorage.getItem('cat_admin_audit_log') || '[]');
-    logs.unshift({
-      id: `AUD-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      userId: user?.username || 'unknown',
-      userName: user?.fullName || user?.username || 'unknown',
-      action,
-      details,
-      timestamp: new Date().toISOString(),
-      ip: '127.0.0.1',
-      userAgent: navigator.userAgent,
-    });
-    if (logs.length > 1000) logs.length = 1000;
-    localStorage.setItem('cat_admin_audit_log', JSON.stringify(logs));
-  } catch (e) {
-    console.warn('Audit log write failed:', e);
-  }
-};
+// TODO: Replace with backend API calls
+// API ENDPOINTS: /api/engines (GET), /api/engines (POST), /api/engines/:id (PUT), /api/engines/:id (DELETE)
 
 export default function EngineManagement() {
-  const { currentUser } = useAuth();
+  const { currentAdmin, addAuditLog } = useAdminAuth();
   const [engines, setEngines] = useState([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -57,13 +40,7 @@ export default function EngineManagement() {
 
   const openEditModal = (engine) => {
     setEditingEngine(engine);
-    setFormData({
-      model: engine.model,
-      version: engine.version,
-      releaseYear: engine.releaseYear.toString(),
-      manufacturingYears: engine.manufacturingYears,
-      mfgYearValue: engine.mfgYearValue.toString(),
-    });
+    setFormData({ ...engine, releaseYear: String(engine.releaseYear), mfgYearValue: String(engine.mfgYearValue) });
     setFormErrors({});
     setShowModal(true);
   };
@@ -76,34 +53,24 @@ export default function EngineManagement() {
     if (!formData.mfgYearValue) errors.mfgYearValue = 'Required';
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
 
-    const payload = {
-      model: formData.model,
-      version: formData.version.trim(),
-      releaseYear: parseInt(formData.releaseYear),
-      manufacturingYears: formData.manufacturingYears.trim(),
-      mfgYearValue: parseInt(formData.mfgYearValue),
-    };
+    const payload = { ...formData, releaseYear: parseInt(formData.releaseYear), mfgYearValue: parseInt(formData.mfgYearValue) };
 
     if (editingEngine) {
-      const result = updateEngine(editingEngine.id, payload);
-      if (result) {
-        setEngines(getEngines());
-        addAuditLog(currentUser, 'Update Engine', `Updated engine: ${editingEngine.id} - ${payload.version}`);
-        setShowModal(false);
-      }
+      updateEngine(editingEngine.id, payload);
+      addAuditLog(currentAdmin, 'Update Engine', `Updated engine: ${editingEngine.id}`);
     } else {
-      const newEngine = addEngine(payload);
-      setEngines(getEngines());
-      addAuditLog(currentUser, 'Add Engine', `Added engine: ${newEngine.id} - ${payload.version}`);
-      setShowModal(false);
+      addEngine(payload);
+      addAuditLog(currentAdmin, 'Add Engine', `Added engine`);
     }
+    setEngines(getEngines());
+    setShowModal(false);
   };
 
   const handleDelete = (engine) => {
     if (deleteConfirm === engine.id) {
       deleteEngine(engine.id);
       setEngines(getEngines());
-      addAuditLog(currentUser, 'Delete Engine', `Deleted engine: ${engine.id} - ${engine.version}`);
+      addAuditLog(currentAdmin, 'Delete Engine', `Deleted engine: ${engine.id}`);
       setDeleteConfirm(null);
     } else {
       setDeleteConfirm(engine.id);
@@ -113,26 +80,34 @@ export default function EngineManagement() {
 
   return (
     <AdminLayout>
-      <div className="p-4 lg:p-6" style={FONT}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="p-6" style={FONT}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl font-extrabold text-gray-900 uppercase tracking-tight">Engine Database Management</h1>
             <p className="text-xs text-gray-500 mt-1">{engines.length} engine records</p>
           </div>
-          <button onClick={openAddModal} className="flex items-center gap-2 px-4 py-2 bg-cat-yellow text-cat-black font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-yellow-400 transition-all cursor-pointer">
+          <button onClick={openAddModal} className="flex items-center gap-2 px-4 py-2 bg-[#FFCD11] text-[#111111] font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-yellow-500 transition-colors">
             <Plus className="w-3.5 h-3.5" /> Add Engine Model
           </button>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-              placeholder="Search engine models..." className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50" />
+        {/* Search - White Panel */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+              placeholder="Search engine models..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FFCD11]/50"
+            />
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        {/* Engine Table - White */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -152,19 +127,18 @@ export default function EngineManagement() {
                   <tr key={i} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3.5 text-xs font-mono text-gray-500">{e.id}</td>
                     <td className="px-4 py-3.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-cat-yellow/10 text-cat-yellow border border-cat-yellow/30">{e.model}</span>
+                      <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-[#FFCD11]/15 text-[#FFCD11] border border-[#FFCD11]/30">{e.model}</span>
                     </td>
                     <td className="px-4 py-3.5 text-sm font-semibold text-gray-900">{e.version}</td>
                     <td className="px-4 py-3.5 text-sm text-gray-700">{e.releaseYear}</td>
                     <td className="px-4 py-3.5 text-sm text-gray-600">{e.manufacturingYears}</td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openEditModal(e)} className="p-1.5 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors cursor-pointer" title="Edit">
+                        <button onClick={() => openEditModal(e)} className="p-1.5 rounded text-gray-500 hover:text-blue-600 hover:bg-blue-100/50 transition-colors" title="Edit">
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => handleDelete(e)}
-                          className={`p-1.5 rounded transition-colors cursor-pointer ${deleteConfirm === e.id ? 'text-red-500 bg-red-50' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}
-                          title={deleteConfirm === e.id ? 'Click again to confirm' : 'Delete'}>
+                          className={`p-1.5 rounded transition-colors ${deleteConfirm === e.id ? 'text-red-600 bg-red-100/50' : 'text-gray-500 hover:text-red-600 hover:bg-red-100/50'}`} title="Delete">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -176,11 +150,15 @@ export default function EngineManagement() {
           </div>
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-              <p className="text-xs text-gray-500">Showing {(currentPage - 1) * perPage + 1} to {Math.min(currentPage * perPage, filtered.length)} of {filtered.length}</p>
-              <div className="flex items-center gap-1">
+              <p className="text-xs text-gray-500">
+                Showing {(currentPage - 1) * perPage + 1} to {Math.min(currentPage * perPage, filtered.length)} of {filtered.length}
+              </p>
+              <div className="flex gap-1">
                 {Array.from({ length: totalPages }, (_, i) => (
                   <button key={i} onClick={() => setCurrentPage(i + 1)}
-                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors cursor-pointer ${currentPage === i + 1 ? 'bg-cat-yellow text-cat-black' : 'text-gray-500 hover:bg-gray-100'}`}>{i + 1}</button>
+                    className={`px-3 py-1 text-xs font-semibold rounded transition-colors ${currentPage === i + 1 ? 'bg-[#FFCD11] text-[#111111]' : 'text-gray-500 hover:bg-gray-100'}`}>
+                    {i + 1}
+                  </button>
                 ))}
               </div>
             </div>
@@ -188,49 +166,44 @@ export default function EngineManagement() {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Add/Edit Modal - Slide Over */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-gray-200" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-end" onClick={() => setShowModal(false)}>
+          <div className="bg-white h-full w-full max-w-md shadow-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h2 className="text-sm font-bold uppercase tracking-wider text-gray-900">{editingEngine ? 'Edit Engine Model' : 'Add Engine Model'}</h2>
-              <button onClick={() => setShowModal(false)} className="p-1 rounded text-gray-400 hover:text-gray-600 cursor-pointer"><X className="w-4 h-4" /></button>
+              <button onClick={() => setShowModal(false)} className="p-1 rounded text-gray-500 hover:text-gray-700">
+                <X className="w-4 h-4" />
+              </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">Engine Model *</label>
-                  <select value={formData.model} onChange={e => setFormData(p => ({ ...p, model: e.target.value }))}
-                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50">
-                    <option value="C7">Caterpillar C7</option>
-                    <option value="C15">Caterpillar C15</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">Release Year *</label>
-                  <input type="number" value={formData.releaseYear} onChange={e => setFormData(p => ({ ...p, releaseYear: e.target.value }))}
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm ${formErrors.releaseYear ? 'border-red-300' : 'border-gray-200'} bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50`} />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">Version Name *</label>
-                  <input value={formData.version} onChange={e => setFormData(p => ({ ...p, version: e.target.value }))}
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm ${formErrors.version ? 'border-red-300' : 'border-gray-200'} bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50`} />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">Manufacturing Year Range *</label>
-                  <input value={formData.manufacturingYears} onChange={e => setFormData(p => ({ ...p, manufacturingYears: e.target.value }))} placeholder="e.g., 2003 – 2010"
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm ${formErrors.manufacturingYears ? 'border-red-300' : 'border-gray-200'} bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50`} />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">Mfg Year Value (numeric) *</label>
-                  <input type="number" value={formData.mfgYearValue} onChange={e => setFormData(p => ({ ...p, mfgYearValue: e.target.value }))}
-                    className={`w-full px-3 py-2.5 rounded-lg border text-sm ${formErrors.mfgYearValue ? 'border-red-300' : 'border-gray-200'} bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50`} />
-                </div>
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Engine Model *</label>
+                <select value={formData.model} onChange={e => setFormData(p => ({ ...p, model: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#FFCD11]/50">
+                  <option value="C7">Caterpillar C7</option>
+                  <option value="C15">Caterpillar C15</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Release Year *</label>
+                <input type="number" value={formData.releaseYear} onChange={e => setFormData(p => ({ ...p, releaseYear: e.target.value }))}
+                  className={`w-full px-3 py-2.5 rounded-lg border text-sm ${formErrors.releaseYear ? 'border-red-300' : 'border-gray-200'} bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFCD11]/50`} />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Version Name *</label>
+                <input value={formData.version} onChange={e => setFormData(p => ({ ...p, version: e.target.value }))}
+                  className={`w-full px-3 py-2.5 rounded-lg border text-sm ${formErrors.version ? 'border-red-300' : 'border-gray-200'} bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFCD11]/50`} />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Manufacturing Years *</label>
+                <input value={formData.manufacturingYears} onChange={e => setFormData(p => ({ ...p, manufacturingYears: e.target.value }))} placeholder="e.g., 2003-2010"
+                  className={`w-full px-3 py-2.5 rounded-lg border text-sm ${formErrors.manufacturingYears ? 'border-red-300' : 'border-gray-200'} bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FFCD11]/50`} />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors cursor-pointer">Cancel</button>
-              <button onClick={handleSave} className="flex items-center gap-2 px-6 py-2 bg-cat-yellow text-cat-black font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-yellow-400 transition-all cursor-pointer">
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-xs font-semibold text-gray-500 hover:text-gray-700">Cancel</button>
+              <button onClick={handleSave} className="flex items-center gap-2 px-6 py-2 bg-[#FFCD11] text-[#111111] font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-yellow-500 transition-colors">
                 <Save className="w-3.5 h-3.5" /> {editingEngine ? 'Update' : 'Add'} Engine
               </button>
             </div>

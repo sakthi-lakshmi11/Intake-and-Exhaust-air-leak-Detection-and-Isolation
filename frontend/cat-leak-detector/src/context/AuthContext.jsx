@@ -5,18 +5,17 @@ const AuthContext = createContext();
 const MOCK_USERS_KEY = 'cat_mock_users';
 const SESSION_KEY = 'cat_active_session';
 
-const INITIAL_USERS = [
-  { username: 'johnad', email: 'johnad@gmail.com', employeeId: 'EMP-0001', fullName: 'John Anderson', role: 'Admin', branch: 'Peoria HQ, IL', department: 'IT Administration', password: 'Admin@123', status: 'Active', createdAt: '2024-01-01T10:00:00Z', lastLogin: null },
-  { username: 'operator1', email: 'operator1@gmail.com', employeeId: 'EMP-1001', fullName: 'David Miller', role: 'Operator', branch: 'Peoria HQ, IL', department: 'Heavy Assembly', password: 'Operator@123', status: 'Active', createdAt: '2024-01-15T10:00:00Z', lastLogin: null },
-  { username: 'quality_manager', email: 'quality.manager@gmail.com', employeeId: 'EMP-9009', fullName: 'Sarah Jenkins', role: 'Administrator', branch: 'Peoria HQ, IL', department: 'Quality Assurance', password: 'Quality@123', status: 'Active', createdAt: '2024-01-15T10:00:00Z', lastLogin: null },
-];
-
 export const AuthProvider = ({ children }) => {
   const [users, setUsers] = useState(() => {
     const saved = localStorage.getItem(MOCK_USERS_KEY);
-    if (saved) return JSON.parse(saved);
-    localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(INITIAL_USERS));
-    return INITIAL_USERS;
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
   });
 
   const [currentUser, setCurrentUser] = useState(() => {
@@ -47,12 +46,19 @@ export const AuthProvider = ({ children }) => {
     );
 
     if (user) {
+      // Update last activity
+      const now = new Date().toISOString();
+      setUsers(prev => prev.map(u => 
+        u.username === user.username ? { ...u, lastActivity: now } : u
+      ));
+
       const sessionUser = {
         username: user.username,
         fullName: user.fullName,
         role: user.role || 'Operator',
         branch: user.branch || '',
-        department: user.department || ''
+        department: user.department || '',
+        lastActivity: now
       };
       setCurrentUser(sessionUser);
       localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
@@ -80,7 +86,8 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: 'An account with this username or email already exists.' };
     }
 
-    const newUser = { ...userData, role: 'Operator', branch: '', department: '' };
+    const now = new Date().toISOString();
+    const newUser = { ...userData, role: 'Operator', branch: '', department: '', status: 'Active', createdAt: now, lastActivity: now };
     setUsers((prev) => [...prev, newUser]);
     const sessionUser = {
       username: newUser.username,

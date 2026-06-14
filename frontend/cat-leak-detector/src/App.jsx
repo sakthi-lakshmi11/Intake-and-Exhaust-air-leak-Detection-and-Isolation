@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AdminAuthProvider, useAdminAuth } from './admin/context/AdminAuthContext';
 import Navbar from './components/Navbar';
 import CaterpillarLogo from './components/CaterpillarLogo';
 
@@ -34,13 +35,15 @@ const ProtectedRoute = ({ children }) => {
   return currentUser ? children : <Navigate to="/login" replace />;
 };
 
-// Admin route protection - checks if user is Admin
+// Admin route protection - checks AdminAuthContext instead of regular AuthContext
 const AdminProtectedRoute = ({ children }) => {
-  const { currentUser } = useAuth();
-  if (!currentUser) return <Navigate to="/login" replace />;
-  if (currentUser.role !== 'Admin' && currentUser.role !== 'Administrator') return <Navigate to="/dashboard" replace />;
+  const { currentAdmin } = useAdminAuth();
+  if (!currentAdmin) return <Navigate to="/login" replace />;
   return children;
 };
+
+// Redirect /admin/login to unified /login
+const AdminLoginRedirect = () => <Navigate to="/login" replace />;
 
 function Layout() {
   const location = useLocation();
@@ -93,7 +96,8 @@ function Layout() {
           <Route path="/support" element={<Support />} />
           <Route path="/contact" element={<Contact />} />
           
-          {/* Admin Routes - protected for Admin role only */}
+{/* Admin Routes - protected by AdminAuthContext */}
+          <Route path="/admin/login" element={<AdminLoginRedirect />} />
           <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
           <Route path="/admin/users" element={<AdminProtectedRoute><UserManagement /></AdminProtectedRoute>} />
           <Route path="/admin/analyses" element={<AdminProtectedRoute><AnalysisManagement /></AdminProtectedRoute>} />
@@ -139,7 +143,9 @@ export default function App() {
     <Router>
       <LanguageProvider>
         <AuthProvider>
-          <Layout />
+          <AdminAuthProvider>
+            <Layout />
+          </AdminAuthProvider>
         </AuthProvider>
       </LanguageProvider>
     </Router>
