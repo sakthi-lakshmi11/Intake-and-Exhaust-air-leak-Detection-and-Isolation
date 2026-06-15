@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Play, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
@@ -26,9 +27,6 @@ export const ENGINE_VERSION_DB = {
   ],
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EXISTING CONFIGURATION — unchanged
-// ─────────────────────────────────────────────────────────────────────────────
 const ENGINE_FAMILY_OPTIONS = [
   { value: 'C7',  label: 'Caterpillar C7'  },
   { value: 'C15', label: 'Caterpillar C15' },
@@ -129,6 +127,7 @@ function CustomDropdown({ id, label, required, options, value, onChange, openDro
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   // Cascading dropdown state
@@ -187,8 +186,11 @@ export default function Dashboard() {
     const errs = {};
     FIELDS.forEach(({ key, min, max, label }) => {
       const val = parseFloat(inputs[key]);
-      if (inputs[key] === '' || isNaN(val))    errs[key] = `${label} is required.`;
-      else if (val < min || val > max)          errs[key] = `Valid range: ${min} – ${max}`;
+      if (inputs[key] === '' || isNaN(val)) {
+        errs[key] = `${label}${t('sensorInputRequired') || ' is required.'}`;
+      } else if (val < min || val > max) {
+        errs[key] = `${t('sensorInputRange') || 'Valid range:'} ${min} – ${max}`;
+      }
     });
     // Edge case: no version available for engine family
     if (!selectedVersion) errs._version = 'Please select a valid engine version.';
@@ -231,9 +233,15 @@ export default function Dashboard() {
 
         {/* ── Page Header ── */}
         <div className="mb-10">
-          <p className="section-label-yellow mb-2">NovaCrafters Diagnostics Platform</p>
-          <h1 className="main-heading-white leading-tight">Intake and Exhaust Air Leak Detection</h1>
-          <p className="mt-2 text-sm text-gray-500 font-normal">Engine Configuration and Operating Parameters</p>
+          <p className="section-label-yellow mb-2">
+            {t('dashboardBadge') || 'NovaCrafters Diagnostics Platform'}
+          </p>
+          <h1 className="main-heading-white leading-tight">
+            {t('heroTitle') || 'Intake and Exhaust Air Leak Detection'}
+          </h1>
+          <p className="mt-2 text-sm text-gray-500 font-normal">
+            {t('dashboardSubtitle') || 'Engine Configuration and Operating Parameters'}
+          </p>
           <div className="mt-5 h-px bg-gray-100" />
         </div>
 
@@ -245,7 +253,7 @@ export default function Dashboard() {
 
             <CustomDropdown
               id="family"
-              label="Engine Family"
+              label={t('engineFamilyLabel') || 'Engine Family'}
               required
               options={ENGINE_FAMILY_OPTIONS}
               value={engineFamily}
@@ -256,7 +264,7 @@ export default function Dashboard() {
 
             <CustomDropdown
               id="config"
-              label="Engine Configuration"
+              label={t('engineConfigLabel') || 'Engine Configuration'}
               required
               options={ENGINE_CONFIG_BY_FAMILY[engineFamily]}
               value={engineConfig}
@@ -267,7 +275,7 @@ export default function Dashboard() {
 
             <CustomDropdown
               id="turbo"
-              label="Turbo Configuration"
+              label={t('turboConfigLabel') || 'Turbo Configuration'}
               required
               options={TURBO_CONFIG_BY_ENGINE[engineConfig]}
               value={turboConfig}
@@ -279,7 +287,7 @@ export default function Dashboard() {
             {/* ── FEATURE 1: Engine Version dropdown ── */}
             <CustomDropdown
               id="version"
-              label="Engine Version / Variant"
+              label={t('engineVersionLabel') || 'Engine Version / Variant'}
               required
               options={versionOptions}
               value={engineVersion}
@@ -297,7 +305,7 @@ export default function Dashboard() {
               {/* Release Year — read-only info tile */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">
-                  Release Year
+                  {t('releaseYear') || 'Release Year'}
                 </p>
                 <p className="text-sm font-bold text-gray-900">{selectedVersion.releaseYear}</p>
               </div>
@@ -306,13 +314,14 @@ export default function Dashboard() {
               <div className="sm:col-span-2 bg-cat-yellow/10 border border-cat-yellow/40 rounded-lg px-4 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">
-                    Manufacturing Year <span className="text-gray-400 normal-case tracking-normal font-normal">(auto-populated)</span>
+                    {t('manufacturingYear') || 'Manufacturing Year'}{' '}
+                    <span className="text-gray-400 normal-case tracking-normal font-normal">({t('autoPopulated') || 'auto-populated'})</span>
                   </p>
                   <p className="text-sm font-bold text-gray-900">{displayMfgYear}</p>
                 </div>
                 {/* Lock icon indicates read-only */}
                 <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider bg-white border border-gray-200 px-2 py-1 rounded">
-                  Read‑Only
+                  {t('readOnly') || 'Read‑Only'}
                 </span>
               </div>
 
@@ -370,17 +379,17 @@ export default function Dashboard() {
             className="w-full flex items-center justify-center gap-3 bg-cat-yellow text-cat-black font-extrabold text-[13px] uppercase tracking-[0.18em] py-4 rounded-lg shadow-sm hover:bg-yellow-400 hover:shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer mt-2"
           >
             <Play className="w-4 h-4 fill-current" />
-            Start Analysis
+            {t('startAnalysis') || 'Start Analysis'}
           </button>
 
           {/* Footer note — now shows version label + mfg year range */}
           <p className="text-center text-[11px] text-gray-400 pb-2">
-            Analysis will use the{' '}
+            {t('analysisModelNote') || 'Analysis will use the'}{' '}
             <span className="font-semibold text-gray-600">
               {engineFamily} — {selectedVersion?.label ?? ''}
             </span>{' '}
-            machine learning model.{' '}
-            <span className="text-gray-400">Mfg. Years: {displayMfgYear}</span>
+            {t('analysisModelSuffix') || 'machine learning model.'}{' '}
+            <span className="text-gray-400">{t('mfgYears') || 'Mfg. Years:'} {displayMfgYear}</span>
           </p>
 
         </form>
