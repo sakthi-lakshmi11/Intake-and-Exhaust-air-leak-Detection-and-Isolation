@@ -10,8 +10,24 @@ const translations = {
     navSupport: 'Support',
     navContact: 'Contact',
     navLogin: 'Login',
-    navSignUp: 'Sign Up',
     navLogout: 'Logout',
+    navProfile: 'Profile',
+    navMyReports: 'My Reports',
+
+    // Login Page
+    fillAllFields: 'Please fill in all fields.',
+    enterUsername: 'Enter username or email',
+    signInToAccount: 'Sign in to your account',
+    loginTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+
+    // Dashboard Page
+    dashboardBadge: 'NovaCrafters Diagnostics Platform',
+    dashboardSubtitle: 'Engine Configuration and Operating Parameters',
+    engineFamilyLabel: 'Engine Family',
+
+    // Validation
+    sensorInputRequired: 'is required.',
+    sensorInputRange: 'Valid range:',
 
     // Welcome Page badges & updated terminology
     heroBadge: 'Industrial Diagnostic Platform',
@@ -52,7 +68,7 @@ const translations = {
     password: 'Password',
     rememberMe: 'Remember Me',
     forgotPassword: 'Forgot Password?',
-    signUp: 'Sign Up',
+    navSignUp: 'Sign Up',
     dontHaveAccount: "Don't have an account?",
     loginBtn: 'Authenticate & Access',
     authenticating: 'Authenticating User...',
@@ -234,6 +250,8 @@ const translations = {
     operator: 'இயக்குபவர்',
     engineer: 'பொறியாளர்',
     supervisor: 'மேற்பார்வையாளர்',
+    navProfile: 'சுயவிவரம்',
+    navMyReports: 'என் அறிக்கைகள்',
 
     // Welcome Page
     heroTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
@@ -260,13 +278,20 @@ const translations = {
     password: 'கடவுச்சொல்',
     rememberMe: 'என்னை நினைவில் கொள்',
     forgotPassword: 'கடவுச்சொல்லை மறந்தீர்களா?',
-    signUp: 'பதிவு செய்',
+    navSignUp: 'பதிவு செய்',
     dontHaveAccount: 'கணக்கு இல்லையா?',
     loginBtn: 'அங்கீகரித்து அணுகவும்',
     authenticating: 'பயனர் அங்கீகரிக்கப்படுகிறார்...',
     verifying: 'சான்றுகள் சரிபார்க்கப்படுகின்றன...',
     loadingSystem: 'தொழில்துறை கண்காணிப்பு தளம் ஏற்றப்படுகிறது...',
     secureSession: 'பாதுகாப்பான 256-பிட் குறியாக்கப்பட்ட அமர்வு',
+
+    // Dashboard Page
+    dashboardBadge: 'NovaCrafters Diagnostics Platform',
+    dashboardSubtitle: 'என்ஜின் உள்மாறுபாடு மற்றும் செயல்பாட்டு அளவுருக்கள்',
+    engineFamilyLabel: 'என்ஜின் குடும்பம்',
+    sensorInputRequired: ' உள்ளிடப்பட வேண்டும்.',
+    sensorInputRange: 'செல்லுபடியாகும் வரம்பு:',
 
     // Registration Page
     registerTitle: 'நிறுவன கணக்கை உருவாக்கவும்',
@@ -409,7 +434,12 @@ const translations = {
     applicationsContent: ['கனரக லாரிகள்', 'சுரங்க உபகரணங்கள்', 'கட்டுமான இயந்திரங்கள்', 'தொழில்துறை டீசல் என்ஜின்கள்', 'கடற்படை பராமரிப்பு நடவடிக்கைகள்'],
     ourGoal: 'எங்கள் இலக்கு',
     ourGoalContent: 'நுண்ணறிவுமிக்க கசிவு கண்டறிதலின் மூலம் உபகரண நம்பகத்தன்மையை மேம்படுத்துவது, பராமரிப்பு செலவுகளைக் குறைப்பது, செயல்நிறுத்தத்தைக் குறைப்பது மற்றும் திறமையான செயல்பாட்டை ஆதரிப்பது.',
-    slideCounter: 'இல்'
+    slideCounter: 'இல்',
+
+    // Login Page
+    fillAllFields: 'அனைத்து புலங்களையும் நிரப்பவும்.',
+    enterUsername: 'பயனர் பெயர் அல்லது மின்னஞ்சலை உள்ளிடவும்',
+    signInToAccount: 'உங்கள் கணக்கில் உள்நுழையவும்',
   },
   hi: {
     // Navigation
@@ -425,6 +455,8 @@ const translations = {
     operator: 'ऑपरेटर',
     engineer: 'इंजीनियर',
     supervisor: 'पर्यवेक्षक',
+    navProfile: 'प्रोफ़ाइल',
+    navMyReports: 'मेरी रिपोर्ट्स',
 
     // Welcome Page
     heroTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
@@ -451,13 +483,20 @@ const translations = {
     password: 'पासवर्ड',
     rememberMe: 'मुझे याद रखें',
     forgotPassword: 'पासवर्ड भूल गए?',
-    signUp: 'साइन अप करें',
+    navSignUp: 'साइन अप करें',
     dontHaveAccount: 'खाता नहीं है?',
     loginBtn: 'सत्यापित करें और प्रवेश करें',
     authenticating: 'उपयोगकर्ता को प्रमाणित किया जा रहा है...',
     verifying: 'साख का सत्यापन किया जा रहा है...',
     loadingSystem: 'औद्योगिक निगरानी मंच लोड हो रहा है...',
     secureSession: 'सुरक्षित 256-बिट एन्क्रिप्टेड सत्र',
+
+    // Dashboard Page
+    dashboardBadge: 'NovaCrafters Diagnostics Platform',
+    dashboardSubtitle: 'इंजन वाक्यरचना और संचालन मापदंड',
+    engineFamilyLabel: 'इंजन पारिवारिक',
+    sensorInputRequired: ' आवश्यक है।',
+    sensorInputRange: 'स valid रेंज:',
 
     // Registration Page
     registerTitle: 'एंटरप्राइज खाता बनाएं',
@@ -600,7 +639,12 @@ const translations = {
     applicationsContent: ['हेवी ट्रक', 'माइनिंग इक्विपमेंट', 'कंस्ट्रक्शन मशीनरी', 'औद्योगिक डीजल इंजन', 'फ्लीट मेंटेनेंस ऑपरेशन्स'],
     ourGoal: 'हमारा लक्ष्य',
     ourGoalContent: 'बुद्धिमान लीक डिटेक्शन के माध्यम से उपकरण विश्वसनीयता में सुधार, रखरखाव लागत को कम करना, डाउनटाइम को न्यूनतम करना, और कुशल संचालन का समर्थन करना।',
-    slideCounter: 'का'
+    slideCounter: 'का',
+
+    // Login Page
+    fillAllFields: 'कृपया सभी फ़ील्ड भरें।',
+    enterUsername: 'उपयोगकर्ता नाम या ईमेल दर्ज करें',
+    signInToAccount: 'अपने अकाउंट में साइन इन करें',
   }
 };
 

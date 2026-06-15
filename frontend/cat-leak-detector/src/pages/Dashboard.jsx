@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Play, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
 
-// Cascading configuration hierarchy
 const ENGINE_FAMILY_OPTIONS = [
   { value: 'C7',  label: 'Caterpillar C7'  },
   { value: 'C15', label: 'Caterpillar C15' },
@@ -94,6 +94,7 @@ const FIELDS = [
 
 export default function Dashboard() {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   // Cascading state
@@ -156,9 +157,9 @@ export default function Dashboard() {
     FIELDS.forEach(({ key, min, max, label }) => {
       const val = parseFloat(inputs[key]);
       if (inputs[key] === '' || isNaN(val)) {
-        errs[key] = `${label} is required.`;
+        errs[key] = `${label}${t('sensorInputRequired') || ' is required.'}`;
       } else if (val < min || val > max) {
-        errs[key] = `Valid range: ${min} – ${max}`;
+        errs[key] = `${t('sensorInputRange') || 'Valid range:'} ${min} – ${max}`;
       }
     });
     return errs;
@@ -197,13 +198,13 @@ export default function Dashboard() {
         {/* ── Page Header ── */}
         <div className="mb-10">
           <p className="section-label-yellow mb-2">
-            NovaCrafters Diagnostics Platform
+            {t('dashboardBadge') || 'NovaCrafters Diagnostics Platform'}
           </p>
           <h1 className="main-heading-white leading-tight">
-            Intake and Exhaust Air Leak Detection
+            {t('heroTitle') || 'Intake and Exhaust Air Leak Detection'}
           </h1>
           <p className="mt-2 text-sm text-gray-500 font-normal">
-            Engine Configuration and Operating Parameters
+            {t('dashboardSubtitle') || 'Engine Configuration and Operating Parameters'}
           </p>
           <div className="mt-5 h-px bg-gray-100" />
         </div>
@@ -217,7 +218,7 @@ export default function Dashboard() {
             {/* Engine Family */}
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-widest text-gray-500 mb-2">
-                Engine Family <span className="text-cat-yellow">*</span>
+                {t('engineFamilyLabel') || 'Engine Family'} <span className="text-cat-yellow">*</span>
               </label>
               <div className="relative w-full">
                 <button
