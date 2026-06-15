@@ -60,7 +60,7 @@ export default function Results() {
   status = report.go_nogo || 'GO',
   confidence = 0,
   riskLevel = report.severity || 'Low',
-  recommendations = [],
+  recommendations = "",
   inputs = {}
 } = report;
   const engineModel = report.engineModel || inputs?.engineModel || 'C7';
@@ -265,16 +265,34 @@ export default function Results() {
 
         {/* ── 7. RECOMMENDATIONS ── */}
         <div>
-          <SectionTitle>Recommended Maintenance Actions</SectionTitle>
-          <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
-            {(recommendations || []).map((rec, i) => (
-              <div key={i} className="flex items-start gap-3 px-5 py-4">
-                <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
-                <span className="text-sm text-gray-700 leading-relaxed">{rec}</span>
-              </div>
-            ))}
-          </div>
+  <SectionTitle>Recommended Maintenance Actions</SectionTitle>
+
+  <div className="bg-white border border-gray-200 rounded-xl">
+
+    {typeof recommendations === "string" ? (
+
+      <div className="flex items-start gap-3 px-5 py-4">
+        <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
+        <span className="text-sm text-gray-700 leading-relaxed">
+          {recommendations}
+        </span>
+      </div>
+
+    ) : (
+
+      (recommendations || []).map((rec, i) => (
+        <div key={i} className="flex items-start gap-3 px-5 py-4">
+          <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
+          <span className="text-sm text-gray-700 leading-relaxed">
+            {rec}
+          </span>
         </div>
+      ))
+
+    )}
+
+  </div>
+</div>
 
         <Divider />
 

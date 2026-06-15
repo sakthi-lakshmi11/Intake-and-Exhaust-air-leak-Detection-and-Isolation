@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 import joblib
-from security_engine import encrypt_payload, decrypt_payload
+from backend.security_engine import encrypt_payload, decrypt_payload
 
 print("Initializing Secure Live Real-Time Inference Pipeline...")
 
@@ -115,12 +115,11 @@ def process_live_inference(encrypted_input_stream):
     avg_confidence_score = round((sec_confidence + sev_confidence) / 2, 2)
     
     # Map target classifications back to their clean physical engineering text strings
-    section_map = {0: "Healthy (No Leak)", 1: "Air Filter to MAF Sensor", 2: "MAF Sensor to Turbo Compressor In", 
-                   3: "Turbo Compressor Out to CAC", 4: "CAC to Intake Manifold", 5: "Cylinder to Turbine In", 
-                   6: "Diesel Oxidation Catalyst (DOC)", 7: "Diesel Particulate Filter (DPF)", 8: "SCR Tracking Zone"}
+    section_map = {0: "Healthy", 1: "Air Filter to MAF Sensor", 2: "MAF Sensor to Turbocharger Compressor Inlet",  3: "Compressor Outlet to Charge Air Cooler", 4: "Charge Air Cooler (CAC) to Intake Manifold", 5: "Cylinder to Turbocharger Turbine Inlet", 
+6: "Diesel Oxidation Catalyst", 7: "Diesel Particulate Filter", 8: "Selective Catalytic Reduction"}
     
-    severity_map = {0: "No Leak Detected", 1: "Low Severity Leak", 2: "Moderate Severity Leak", 3: "High Severity Leak"}
-    
+    severity_map = {0: "No Leak Detected-Healthy", 1: "Low Severity Leak", 2: "Moderate Severity Leak", 3: "High Severity Leak"}  
+
     detected_section = section_map[pred_sec_class]
     detected_severity = severity_map[pred_sev_class]
     go_indicator = "GO (System Safe)" if pred_go_score > 0.5 else "NON-GO (IMMEDIATE SHUTDOWN)"
@@ -166,3 +165,4 @@ if __name__ == "__main__":
     print(f"3. DETECTED SEVERITY     : {final_output['Leak_Severity']}")
     print(f"4. DIAGNOSTIC CONFIDENCE : {final_output['Confidence_Score']}")
     print("="*60)
+

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Play, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
-
+ 
 // Cascading configuration hierarchy
 const ENGINE_FAMILY_OPTIONS = [
   { value: 'C7',  label: 'Caterpillar C7'  },
