@@ -86,32 +86,12 @@ def predict():
 
             }), 400
 
-        # -------------------------------
-        # RECOMMENDATION ENGINE
-        # -------------------------------
-
-        leak_section = prediction_result.get(
-            "leak_section",
-            ""
-        )
-
-        severity = prediction_result.get(
-            "severity",
-            ""
-        )
-
-        recommendations = get_recommendation(
-            leak_section,
-            severity
-        )
-
-        prediction_result[
-            "recommendations"
-        ] = recommendations
+        
 
         # -------------------------------
         # RETURN RESPONSE
         # -------------------------------
+
 
         return jsonify({
 

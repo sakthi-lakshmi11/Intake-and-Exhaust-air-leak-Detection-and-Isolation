@@ -86,23 +86,23 @@ feature_columns = [
 
 section_map = {
 
-    0: "Healthy (No Leak)",
+    0: "Healthy",
 
     1: "Air Filter to MAF Sensor",
 
-    2: "MAF Sensor to Turbo Compressor Inlet",
+    2: "MAF Sensor to Turbocharger Compressor Inlet",
 
-    3: "Turbo Compressor Outlet to Charge Air Cooler",
+    3: "Compressor Outlet to Charge Air Cooler",
 
-    4: "Charge Air Cooler to Intake Manifold",
+    4: "Charge Air Cooler (CAC) to Intake Manifold",
 
-    5: "Cylinder to Turbo Turbine Inlet",
+    5: "Cylinder to Turbocharger Turbine Inlet",
 
     6: "Diesel Oxidation Catalyst",
 
     7: "Diesel Particulate Filter",
 
-    8: "SCR Tracking Zone"
+    8: "Selective Catalytic Reduction"
 }
 
 # ==========================================
@@ -111,7 +111,7 @@ section_map = {
 
 severity_map = {
 
-    0: "No Leak Detected",
+    0: "No Leak Detected-Healthy",
 
     1: "Low Severity Leak",
 
@@ -165,6 +165,14 @@ def run_c7_prediction():
     go_score = float(
         predictions[2][0][0]
     )
+
+    print("\n===== MODEL OUTPUT =====")
+
+    print("Section Class =", section_class)
+    print("Severity Class =", severity_class)
+    print("GO Score =", go_score)
+
+    print("========================") 
 
     confidence = float(
         np.max(predictions[0]) * 100
@@ -225,6 +233,8 @@ def run_c7_prediction():
             ]
         )
     }
+    print("FINAL SECTION =", section_map[section_class])
+    print("FINAL SEVERITY =", severity_map[severity_class])
 
     return {
 

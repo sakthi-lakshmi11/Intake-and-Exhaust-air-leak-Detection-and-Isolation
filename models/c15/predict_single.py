@@ -59,28 +59,29 @@ severity = np.argmax(pred_sev)
 # ==========================
 # Severity Mapping
 # ==========================
-severity_map = {
-    0: "Healthy",
-    1: "Low Leak",
-    2: "Medium Leak",
-    3: "High Leak"
+severity_map = {  
+    0: "No Leak Detected-Healthy",
+    1: "Low Severity Leak",
+    2: "Moderate Severity Leak",
+    3: "High Severity Leak"
 }
+
 
 # ==========================
 # Leak Section Mapping
 # ==========================
 location_map = {
-    "Healthy": "No Leak Detected",
+    "Healthy": "Healthy",
+     
+    "CS1": "Air Filter to MAF Sensor",
 
-    "CS1": "Air Filter -> MAF Sensor",
+    "CS2": "MAF Sensor to Turbocharger Compressor Inlet",
 
-    "CS2": "MAF Sensor -> Turbo Compressor Inlet",
+    "CS3": "Compressor Outlet to Charge Air Cooler",
 
-    "CS3": "Compressor Outlet -> Charge Air Cooler",
+    "CS4": "Charge Air Cooler (CAC) to Intake Manifold",
 
-    "CS4": "CAC -> Intake Manifold -> Cylinder",
-
-    "HS1": "Cylinder -> Turbine Inlet",
+    "HS1": "Cylinder to Turbocharger Turbine Inlet",
 
     "DOC": "Diesel Oxidation Catalyst",
 
@@ -88,7 +89,6 @@ location_map = {
 
     "SCR": "Selective Catalytic Reduction"
 }
-
 # ==========================
 # GO / NO-GO Logic
 # ==========================
@@ -129,3 +129,4 @@ print(
 )
 
 print("==============================================")
+

@@ -117,31 +117,31 @@ def run_c15_prediction():
     )
 
     severity_map = {
-        0: "Healthy",
-        1: "Low Leak",
-        2: "Medium Leak",
-        3: "High Leak"
+        0: "No Leak Detected-Healthy",
+        1: "Low Severity Leak",
+        2: "Moderate Severity Leak",
+        3: "High Severity Leak"
     }
 
     location_map = {
 
         "Healthy":
-        "No Leak Detected",
+        "Healthy",
 
         "CS1":
-        "Air Filter -> MAF Sensor",
+        "Air Filter to MAF Sensor",
 
         "CS2":
-        "MAF Sensor -> Turbo Compressor Inlet",
+        "MAF Sensor to Turbocharger Compressor Inlet",
 
         "CS3":
-        "Compressor Outlet -> Charge Air Cooler",
+        "Compressor Outlet to Charge Air Cooler",
 
         "CS4":
-        "CAC -> Intake Manifold -> Cylinder",
+        "Charge Air Cooler (CAC) to Intake Manifold",
 
         "HS1":
-        "Cylinder -> Turbine Inlet",
+        "Cylinder to Turbocharger Turbine Inlet",
 
         "DOC":
         "Diesel Oxidation Catalyst",
@@ -215,6 +215,8 @@ def run_c15_prediction():
             ]
         )
     }
+    print("FINAL SECTION =", location_map.get(leak_label))
+    print("FINAL SEVERITY =", severity_text)
 
     return {
 

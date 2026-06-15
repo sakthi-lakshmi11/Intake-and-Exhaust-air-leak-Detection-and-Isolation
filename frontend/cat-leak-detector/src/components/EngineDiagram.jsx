@@ -12,7 +12,7 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
   const isC15      = engineModel === 'C15';
 
   /* ── Canvas ── */
-  const W = 800, H = 460;
+  const W = 800, H = 510;
 
   /* ── Palette ── */
   const BG  = '#FFFFFF';
@@ -29,7 +29,7 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
   const DM  = '#888888'; // dim
 
   /* ── Layout constants ── */
-  const TITLE_H = 30;
+  const TITLE_H = 36;  // taller title bar so two lines fit cleanly
   const PAD     = 14;
 
   // Engine block — centred horizontally
@@ -133,11 +133,13 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
 
       {/* ── Title bar ── */}
       <rect x="0" y="0" width={W} height={TITLE_H} fill={S}/>
-      <text x="16" y="19" fontSize="9.5" fontWeight="700" fill={YL} letterSpacing="1">
-        CATERPILLAR {engineModel} · INTAKE &amp; EXHAUST AIR SYSTEM · SERVICE DIAGNOSTIC SCHEMATIC
+      {/* Line 1: model + system name */}
+      <text x="16" y="14" fontSize="9" fontWeight="700" fill={YL} letterSpacing="0.8">
+        CAT {engineModel} · INTAKE &amp; EXHAUST AIR SYSTEM · DIAGNOSTIC SCHEMATIC
       </text>
-      <text x={W-14} y="19" fontSize="7" fill="#666" textAnchor="end">
-        CAT-{engineModel}-DIAG-001 | REV A | FOR SERVICE USE ONLY
+      {/* Line 2: document ref */}
+      <text x="16" y="26" fontSize="6.5" fill="#999">
+        REF: CAT-{engineModel}-DIAG-001 | REV A | FOR SERVICE USE ONLY
       </text>
 
       {/* ═══════════════════════════════
@@ -210,11 +212,11 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
         fill={F2} stroke={S} strokeWidth="1.2"/>
       <rect x={AF_X - 3} y={AF_Y + AF_H - 2} width={AF_W + 6} height="7" rx="2"
         fill={F2} stroke={S} strokeWidth="1.2"/>
-      {/* Callout — above */}
-      <line x1={AF_X + AF_W/2} y1={AF_Y - 5} x2={AF_X + AF_W/2} y2={TITLE_H + 18}
+      {/* Callout — above air filter, starts below title bar */}
+      <line x1={AF_X + AF_W/2} y1={AF_Y - 5} x2={AF_X + AF_W/2} y2={TITLE_H + 8}
         stroke={DM} strokeWidth="0.7" strokeDasharray="3,2"/>
-      <text x={AF_X + AF_W/2} y={TITLE_H + 13} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">AIR FILTER</text>
-      <text x={AF_X + AF_W/2} y={TITLE_H + 22} fontSize="6" fill={DM} textAnchor="middle">HOUSING</text>
+      <text x={AF_X + AF_W/2} y={TITLE_H + 15} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">AIR FILTER</text>
+      <text x={AF_X + AF_W/2} y={TITLE_H + 24} fontSize="6" fill={DM} textAnchor="middle">HOUSING</text>
 
       {/* ═══════════════════════════════
           TURBOCHARGER — COMPRESSOR
@@ -238,11 +240,11 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
       {/* Label */}
       <text x={TC_X} y={TC_Y + 3} fontSize="7.5" fontWeight="700" fill={S} textAnchor="middle">TURBO</text>
       <text x={TC_X} y={TC_Y + 13} fontSize="5.5" fill={DM} textAnchor="middle">COMP.</text>
-      {/* Callout — above */}
-      <line x1={TC_X} y1={TC_Y - TC_R} x2={TC_X} y2={TITLE_H + 18}
+      {/* Callout — above turbo compressor */}
+      <line x1={TC_X} y1={TC_Y - TC_R} x2={TC_X} y2={TITLE_H + 8}
         stroke={DM} strokeWidth="0.7" strokeDasharray="3,2"/>
-      <text x={TC_X} y={TITLE_H + 13} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">TURBOCHARGER</text>
-      <text x={TC_X} y={TITLE_H + 22} fontSize="6" fill={DM} textAnchor="middle">Compressor Housing</text>
+      <text x={TC_X} y={TITLE_H + 15} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">TURBOCHARGER</text>
+      <text x={TC_X} y={TITLE_H + 24} fontSize="6" fill={DM} textAnchor="middle">Compressor Housing</text>
 
       {/* ═══════════════════════════════
           CHARGE AIR COOLER
@@ -310,7 +312,7 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
       <text x={BLK_CX} y={BLK_Y + BLK_H/2 - 7} fontSize="12" fontWeight="700" fill={S}
         textAnchor="middle" letterSpacing="0.5">ENGINE BLOCK</text>
       <text x={BLK_CX} y={BLK_Y + BLK_H/2 + 9} fontSize="8.5" fontWeight="600" fill={DM}
-        textAnchor="middle">CATERPILLAR {engineModel}</text>
+        textAnchor="middle">{engineModel}</text>
       <text x={BLK_CX} y={BLK_Y + BLK_H/2 + 21} fontSize="7" fill={DM} textAnchor="middle">
         {isC15 ? '15.2L In-Line 6 Turbocharged Diesel' : '7.2L In-Line 6 Turbocharged Diesel'}
       </text>
@@ -327,11 +329,11 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
         <rect key={i} x={BLK_X - 3} y={IM_Y + 6 + i*((IM_H-12)/5)} width="3" height="5"
           rx="0" fill={F3} stroke={S} strokeWidth="0.6"/>
       ))}
-      {/* Callout left — below title */}
+      {/* Callout left — INTAKE MANIFOLD, sits just below title bar */}
       <line x1={IM_X} y1={IM_MY} x2={IM_X - 22} y2={IM_MY} stroke={DM} strokeWidth="0.7" strokeDasharray="3,2"/>
-      <line x1={IM_X - 22} y1={IM_MY} x2={IM_X - 22} y2={TITLE_H + 18} stroke={DM} strokeWidth="0.7" strokeDasharray="3,2"/>
-      <text x={IM_X - 22} y={TITLE_H + 13} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">INTAKE</text>
-      <text x={IM_X - 22} y={TITLE_H + 22} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">MANIFOLD</text>
+      <line x1={IM_X - 22} y1={IM_MY} x2={IM_X - 22} y2={TITLE_H + 8} stroke={DM} strokeWidth="0.7" strokeDasharray="3,2"/>
+      <text x={IM_X - 22} y={TITLE_H + 15} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">INTAKE</text>
+      <text x={IM_X - 22} y={TITLE_H + 24} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">MANIFOLD</text>
 
       {/* ═══════════════════════════════
           EXHAUST MANIFOLD
@@ -344,13 +346,13 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
         <rect key={i} x={BLK_R} y={EM_Y + 6 + i*((EM_H-12)/5)} width="3" height="5"
           rx="0" fill={F3} stroke={S} strokeWidth="0.6"/>
       ))}
-      {/* Callout right — below title */}
+      {/* Callout right — EXHAUST MANIFOLD */}
       <line x1={EM_X + EM_W} y1={EM_MY} x2={EM_X + EM_W + 22} y2={EM_MY}
         stroke={DM} strokeWidth="0.7" strokeDasharray="3,2"/>
-      <line x1={EM_X + EM_W + 22} y1={EM_MY} x2={EM_X + EM_W + 22} y2={TITLE_H + 18}
+      <line x1={EM_X + EM_W + 22} y1={EM_MY} x2={EM_X + EM_W + 22} y2={TITLE_H + 8}
         stroke={DM} strokeWidth="0.7" strokeDasharray="3,2"/>
-      <text x={EM_X + EM_W + 22} y={TITLE_H + 13} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">EXHAUST</text>
-      <text x={EM_X + EM_W + 22} y={TITLE_H + 22} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">MANIFOLD</text>
+      <text x={EM_X + EM_W + 22} y={TITLE_H + 15} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">EXHAUST</text>
+      <text x={EM_X + EM_W + 22} y={TITLE_H + 24} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">MANIFOLD</text>
 
       {/* ═══════════════════════════════
           TURBINE HOUSING
@@ -368,11 +370,11 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
       })}
       <text x={TN_X} y={TN_Y + 3} fontSize="7" fontWeight="700" fill={S} textAnchor="middle">TURBINE</text>
       <text x={TN_X} y={TN_Y + 13} fontSize="5.5" fill={DM} textAnchor="middle">HOUSING</text>
-      {/* Callout — above */}
-      <line x1={TN_X} y1={TN_Y - TN_R} x2={TN_X} y2={TITLE_H + 18}
+      {/* Callout — above turbine housing */}
+      <line x1={TN_X} y1={TN_Y - TN_R} x2={TN_X} y2={TITLE_H + 8}
         stroke={DM} strokeWidth="0.7" strokeDasharray="3,2"/>
-      <text x={TN_X} y={TITLE_H + 13} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">TURBINE</text>
-      <text x={TN_X} y={TITLE_H + 22} fontSize="6" fill={DM} textAnchor="middle">Exhaust-Driven</text>
+      <text x={TN_X} y={TITLE_H + 15} fontSize="7" fontWeight="600" fill={LB} textAnchor="middle">TURBINE</text>
+      <text x={TN_X} y={TITLE_H + 24} fontSize="6" fill={DM} textAnchor="middle">Exhaust-Driven</text>
 
       {/* Turbo–Turbine shaft (dashed centre line) */}
       <line x1={TC_X + TC_R} y1={TC_Y} x2={TN_X - TN_R} y2={TN_Y}
@@ -452,38 +454,30 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
         </g>
       )}
 
-      {/* ═══════════════════════════════
-          NO LEAK BANNER
-      ═══════════════════════════════ */}
+      {/* NO LEAK BANNER — centred, above title block zone */}
       {isGo && (
         <g>
-          <rect x={BLK_CX - 130} y={H - 50} width="260" height="26" rx="4"
+          <rect x={BLK_CX - 155} y={H - 52} width="310" height="24" rx="4"
             fill="#F0FDF4" stroke={GN} strokeWidth="1.3"/>
-          <text x={BLK_CX} y={H - 32} fontSize="9" fontWeight="700" fill={GN} textAnchor="middle">
-            ✓ NO LEAK LOCATION IDENTIFIED — SYSTEM CLEAR
+          <text x={BLK_CX} y={H - 35} fontSize="9" fontWeight="700" fill={GN} textAnchor="middle">
+            ✓  NO LEAK LOCATION IDENTIFIED — SYSTEM CLEAR
           </text>
         </g>
       )}
 
-      {/* ═══════════════════════════════
-          OUTER FRAME + TITLE BLOCK
-      ═══════════════════════════════ */}
+      {/* OUTER FRAME */}
       <rect x="1" y="1" width={W-2} height={H-2}
         fill="none" stroke="#BBBBBB" strokeWidth="1.5"/>
 
-      {/* Title block — bottom right */}
-      <rect x={W-178} y={H-54} width="176" height="52" fill={BG} stroke="#BBBBBB" strokeWidth="0.8"/>
-      <line x1={W-178} y1={H-35} x2={W-2} y2={H-35} stroke="#BBBBBB" strokeWidth="0.7"/>
-      <line x1={W-178} y1={H-18} x2={W-2} y2={H-18} stroke="#BBBBBB" strokeWidth="0.7"/>
-      <line x1={W-90} y1={H-54} x2={W-90} y2={H-2} stroke="#BBBBBB" strokeWidth="0.7"/>
-      <text x={W-90} y={H-43} fontSize="6.5" fontWeight="700" fill={S} textAnchor="middle">
-        INTAKE &amp; EXHAUST AIR LEAK
-      </text>
-      <text x={W-90} y={H-43+10} fontSize="6.5" fontWeight="700" fill={S} textAnchor="middle">
-        DETECTION SYSTEM
-      </text>
-      <text x={W-90} y={H-22} fontSize="6" fill={DM} textAnchor="middle">CAT {engineModel} | Diag. Schematic</text>
-      <text x={W-90} y={H-7} fontSize="5.5" fill={DM} textAnchor="middle">FOR SERVICE USE ONLY</text>
+      {/* TITLE BLOCK — bottom-right, non-overlapping with callout boxes */}
+      <rect x={W-182} y={H-58} width="180" height="56" fill={BG} stroke="#BBBBBB" strokeWidth="0.8"/>
+      <line x1={W-182} y1={H-38} x2={W-2} y2={H-38} stroke="#BBBBBB" strokeWidth="0.7"/>
+      <line x1={W-182} y1={H-20} x2={W-2} y2={H-20} stroke="#BBBBBB" strokeWidth="0.7"/>
+      <line x1={W-92}  y1={H-58} x2={W-92}  y2={H-2}  stroke="#BBBBBB" strokeWidth="0.7"/>
+      <text x={W-91} y={H-47} fontSize="6.5" fontWeight="700" fill={S} textAnchor="middle">INTAKE &amp; EXHAUST AIR LEAK</text>
+      <text x={W-91} y={H-37} fontSize="6.5" fontWeight="700" fill={S} textAnchor="middle">DETECTION SYSTEM</text>
+      <text x={W-91} y={H-25} fontSize="6"   fill={DM} textAnchor="middle">{engineModel} | Diagnostic Schematic</text>
+      <text x={W-91} y={H-9}  fontSize="5.5" fill={DM} textAnchor="middle">FOR SERVICE USE ONLY</text>
     </svg>
   );
 }
