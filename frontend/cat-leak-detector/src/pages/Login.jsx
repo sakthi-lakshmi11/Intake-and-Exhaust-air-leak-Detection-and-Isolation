@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAdminAuth } from '../admin/context/AdminAuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Eye, EyeOff, AlertCircle, Cpu } from 'lucide-react';
 import CaterpillarLogo from '../components/CaterpillarLogo';
 
@@ -8,6 +10,8 @@ const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
 
 export default function Login() {
   const { login, loadingMsg } = useAuth();
+  const { adminLogin, adminLoading } = useAdminAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [identifier, setIdentifier] = useState('');
@@ -18,15 +22,24 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
     if (!identifier.trim() || !password) {
-      setError('Please fill in all fields.');
+      setError(t('fillAllFields') || 'Please fill in all fields.');
       return;
     }
-    const res = await login(identifier.trim(), password);
-    if (res.success) {
+
+    const adminRes = await adminLogin(identifier.trim(), password);
+
+    if (adminRes?.success) {
+      return navigate('/admin/dashboard');
+    }
+
+    const operatorRes = await login(identifier.trim(), password);
+
+    if (operatorRes?.success) {
       navigate('/dashboard');
     } else {
-      setError(res.message);
+      setError(operatorRes?.message || adminRes?.message || 'Invalid credentials');
     }
   };
 
@@ -35,39 +48,36 @@ export default function Login() {
       className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 transition-colors duration-300"
       style={FONT}
     >
-      {/* Loading overlay */}
-      {loadingMsg && (
+      {(loadingMsg || adminLoading) && (
         <div className="fixed inset-0 z-50 bg-cat-black/95 flex flex-col items-center justify-center gap-4">
           <div className="relative w-14 h-14">
             <div className="absolute inset-0 rounded-full border-4 border-gray-800" />
             <div className="absolute inset-0 rounded-full border-4 border-cat-yellow border-t-transparent animate-spin" />
             <Cpu className="w-5 h-5 text-cat-yellow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
-          <p className="text-white text-xs font-semibold uppercase tracking-widest">{loadingMsg}</p>
+          <p className="text-white text-xs font-semibold uppercase tracking-widest">
+            {loadingMsg || 'Authenticating...'}
+          </p>
         </div>
       )}
 
       <div className="w-full max-w-sm">
-        {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          {/* Yellow top bar */}
           <div className="h-1 w-full bg-cat-yellow" />
 
           <div className="px-8 pt-8 pb-8">
-            {/* Logo + Title */}
             <div className="flex flex-col items-center mb-8 gap-3">
               <CaterpillarLogo className="h-8 text-cat-black" />
               <div className="text-center">
                 <h1 className="text-[15px] font-extrabold uppercase tracking-tight text-gray-900 leading-tight">
-                  Intake &amp; Exhaust Air Leak Detection
+                  {t('loginTitle') || 'Intake & Exhaust Air Leak Detection'}
                 </h1>
                 <p className="mt-1 text-[11px] text-gray-400 font-normal tracking-wide">
-                  Sign in to your account
+                  {t('signInToAccount') || 'Sign in to your account'}
                 </p>
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="mb-5 flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-xs text-red-600">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
@@ -76,33 +86,31 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Username or Email */}
               <div>
                 <label
-                  htmlFor="login-identifier"
+                  htmlFor="login-email"
                   className="block text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5"
                 >
-                  Username or Email
+                  {t('username') || 'Username'}
                 </label>
                 <input
-                  id="login-identifier"
-                  type="text"
+                  id="login-email"
+                  type="email"
                   required
-                  autoComplete="username"
+                  autoComplete="email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Enter username or email"
+                  placeholder={t('enterUsername') || 'Enter username or email'}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm font-normal placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50 focus:border-cat-yellow transition-all duration-200"
                 />
               </div>
 
-              {/* Password */}
               <div>
                 <label
                   htmlFor="login-password"
                   className="block text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5"
                 >
-                  Password
+                  {t('password') || 'Password'}
                 </label>
                 <div className="relative">
                   <input
@@ -126,31 +134,25 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Submit */}
               <button
                 type="submit"
                 className="w-full mt-2 bg-cat-yellow text-cat-black font-bold text-sm uppercase tracking-widest py-3.5 rounded-xl shadow-md hover:bg-yellow-400 hover:shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer"
               >
-                Login
+                {t('navLogin')}
               </button>
             </form>
 
-            {/* Sign Up link */}
-            <p className="mt-6 text-center text-sm text-gray-500">
-              Not registered yet?{' '}
+            <p className="mt-6 text-center text-xs text-gray-500">
+              {t('dontHaveAccount') || "Don't have an account?"}{' '}
               <Link
                 to="/register"
                 className="font-semibold text-cat-black hover:text-cat-yellow transition-colors"
               >
-                Sign Up
+                {t('navSignUp') || 'Sign Up'}
               </Link>
             </p>
           </div>
         </div>
-
-        <p className="mt-4 text-center text-[11px] text-gray-400">
-          © 2025 Caterpillar Inc. All rights reserved.
-        </p>
       </div>
     </div>
   );
