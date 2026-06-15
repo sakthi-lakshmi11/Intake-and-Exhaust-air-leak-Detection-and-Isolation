@@ -1,81 +1,97 @@
 // Flask API Integration Configuration
-const USE_MOCK_API = false; 
+const USE_MOCK_API = false;
 const API_BASE_URL = 'http://localhost:5000/api';
 
 const REPORTS_STORAGE_KEY = 'cat_diagnostics_reports';
+const SEQ_KEY = 'cat_report_sequence'; // 🔥 FIXED GLOBAL COUNTER
 
+// -----------------------------
+// MOCK STORAGE HELPERS
+// -----------------------------
 const getMockReports = () => {
   const data = localStorage.getItem(REPORTS_STORAGE_KEY);
-  if (data) return JSON.parse(data);
-  return [];
+  return data ? JSON.parse(data) : [];
 };
 
 const getNextSequence = () => {
-  const reports = getMockReports();
-  let maxSeq = 0;
-  reports.forEach(r => {
-    const match = r.id?.match(/^REP-(\d+)$/);
-    if (match) {
-      const seq = parseInt(match[1], 10);
-      if (seq > maxSeq) maxSeq = seq;
-    }
-  });
-  return maxSeq + 1;
+  const seq = localStorage.getItem(SEQ_KEY);
+  const next = seq ? parseInt(seq, 10) + 1 : 1;
+  localStorage.setItem(SEQ_KEY, next);
+  return next;
 };
 
+// -----------------------------
+// SAVE REPORT (FIXED ID SYSTEM)
+// -----------------------------
 const saveMockReport = (report) => {
   const current = getMockReports();
   const nextSeq = getNextSequence();
-  // TODO: Replace with /api/reports POST when backend generates report IDs
+
   const reportWithId = {
     ...report,
     id: `REP-${String(nextSeq).padStart(4, '0')}`,
     analysisId: `ANL-${String(nextSeq).padStart(4, '0')}`
   };
+
   const updated = [reportWithId, ...current];
   localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated));
-  // TODO: Replace with /api/users/:username/activity PATCH for backend
-  // Update user lastActivity - operator activity tracking
+
+  // Update technician last activity
   if (report.technician) {
     const usersKey = 'cat_mock_users';
     const users = localStorage.getItem(usersKey);
+
     if (users) {
       try {
         const parsed = JSON.parse(users);
         const now = new Date().toISOString();
+
         const updatedUsers = parsed.map(u =>
-          u.fullName === report.technician ? { ...u, lastActivity: now } : u
+          u.fullName === report.technician
+            ? { ...u, lastActivity: now }
+            : u
         );
+
         localStorage.setItem(usersKey, JSON.stringify(updatedUsers));
-      } catch { /* ignore */ }
+      } catch (e) {
+        console.warn('User update failed:', e);
+      }
     }
   }
+
   return reportWithId;
 };
 
+// -----------------------------
+// MIGRATION (ONE-TIME FIX)
+// -----------------------------
 export const migrateReportIds = () => {
   const reports = getMockReports();
   if (reports.length === 0) return { migrated: 0 };
 
   const sorted = [...reports].sort((a, b) => {
-    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-    return timeA - timeB;
+    return new Date(a.timestamp || 0) - new Date(b.timestamp || 0);
   });
 
-  const remapped = sorted.map((r, idx) => ({
+  let counter = 1;
+
+  const remapped = sorted.map((r) => ({
     ...r,
-    id: `REP-${String(idx + 1).padStart(4, '0')}`,
-    analysisId: `ANL-${String(idx + 1).padStart(4, '0')}`
+    id: `REP-${String(counter).padStart(4, '0')}`,
+    analysisId: `ANL-${String(counter++).padStart(4, '0')}`
   }));
 
   localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(remapped));
+  localStorage.setItem(SEQ_KEY, counter - 1); // sync counter
+
   return { migrated: reports.length };
 };
 
-// API Client Layer
+// -----------------------------
+// API CLIENT
+// -----------------------------
 export const api = {
-  // POST /api/login
+  // LOGIN
   login: async (username, employeeId, password, loginType) => {
     if (!USE_MOCK_API) {
       try {
@@ -86,14 +102,16 @@ export const api = {
         });
         return await response.json();
       } catch (err) {
-        return { success: false, message: `Flask API connection error: ${err.message}` };
+        return {
+          success: false,
+          message: `Flask API connection error: ${err.message}`
+        };
       }
     }
-    // Handled in AuthContext for simulation, fallback
     return { success: true };
   },
 
-  // POST /api/register
+  // REGISTER
   register: async (userData) => {
     if (!USE_MOCK_API) {
       try {
@@ -104,31 +122,32 @@ export const api = {
         });
         return await response.json();
       } catch (err) {
-        return { success: false, message: `Flask API connection error: ${err.message}` };
+        return {
+          success: false,
+          message: `Flask API connection error: ${err.message}`
+        };
       }
     }
-    // Handled in AuthContext for simulation
     return { success: true };
   },
 
-  // GET /api/reports
-  // TODO: Replace localStorage with real API call
+  // GET REPORTS
   getReports: async () => {
     if (!USE_MOCK_API) {
       try {
         const response = await fetch(`${API_BASE_URL}/reports`);
         return await response.json();
       } catch (err) {
-        console.warn('Real API failed, fallback to mock:', err);
+        console.warn('API failed, using mock data:', err);
         return getMockReports();
       }
     }
-    await new Promise((r) => setTimeout(r, 600)); // Network latency simulator
+
+    await new Promise(r => setTimeout(r, 600));
     return getMockReports();
   },
 
-  // POST /api/predict
-  // TODO: Replace localStorage with real API call
+  // PREDICT
   predict: async (inputs, technicianInfo) => {
     if (!USE_MOCK_API) {
       try {
@@ -139,105 +158,83 @@ export const api = {
         });
         return await response.json();
       } catch (err) {
-        console.warn('Real Flask API failed. Running fallback local AI model algorithm.', err);
+        console.warn('Flask API failed. Using fallback model.', err);
       }
     }
 
-    await new Promise((r) => setTimeout(r, 4500));
+    await new Promise(r => setTimeout(r, 1500));
 
-    const { rpm, fuelRate, fuelInjectionTime, injectionPressure, engineModel,
-            engineVersion, engineVersionLabel, releaseYear,
-            manufacturingYear, manufacturingYears } = inputs; // FEATURE 1: destructure version fields
+    const {
+      rpm,
+      fuelRate,
+      fuelInjectionTime,
+      injectionPressure,
+      engineModel,
+      engineVersion,
+      engineVersionLabel,
+      releaseYear,
+      manufacturingYear,
+      manufacturingYears
+    } = inputs;
+
+    const isC15 = engineModel === 'C15';
+
+    const rpmHigh = isC15 ? 2100 : 1700;
+    const rpmMed = isC15 ? 1600 : 1300;
+    const fuelHigh = isC15 ? 80 : 30;
+    const injHigh = isC15 ? 3.5 : 2.8;
+    const pressureLow = isC15 ? 900 : 600;
 
     let prediction = 'No Leak';
     let status = 'GO';
-    let confidence = 97.0;
+    let confidence = 96;
     let riskLevel = 'Low';
     let recommendations = [];
 
-    // C7 model thresholds (lighter engine — lower RPM/pressure range)
-    // C15 model thresholds (heavier engine — higher RPM/pressure range)
-    const isC15 = engineModel === 'C15';
+    const intake =
+      (rpm > rpmMed && fuelRate > (isC15 ? 55 : 22)) ||
+      injectionPressure < pressureLow;
 
-    const rpmThresholdHigh    = isC15 ? 2100 : 1700;
-    const rpmThresholdMedium  = isC15 ? 1600 : 1300;
-    const fuelRateHigh        = isC15 ? 80   : 30;
-    const fuelRateMedium      = isC15 ? 55   : 22;
-    const injTimeHigh         = isC15 ? 3.5  : 2.8;
-    const pressureLow         = isC15 ? 900  : 600;
+    const exhaust = rpm > rpmHigh && fuelInjectionTime > injHigh;
 
-    const highRpm       = rpm > rpmThresholdHigh;
-    const abnormalFuel  = fuelRate > fuelRateHigh;
-    const longInjTime   = fuelInjectionTime > injTimeHigh;
-    const lowPressure   = injectionPressure < pressureLow;
-
-    const intakeSigns  = (rpm > rpmThresholdMedium && fuelRate > fuelRateMedium) || lowPressure;
-    const exhaustSigns = highRpm && longInjTime;
-
-    if (intakeSigns && exhaustSigns) {
+    if (intake && exhaust) {
       prediction = 'Combined Leak';
       status = 'NON-GO';
       riskLevel = 'Critical';
-      confidence = 93.5 + Math.random() * 2;
-      recommendations = [
-        'Inspect intake manifold gaskets and seal integrity.',
-        'Verify intercooler piping clamps and run pressure drop test.',
-        'Check exhaust manifold gaskets and weld joints for soot.',
-        'Perform high-pressure smoke test to locate all micro-leaks.'
-      ];
-    } else if (exhaustSigns) {
+      confidence = 94;
+    } else if (exhaust) {
       prediction = 'Exhaust Leak';
       status = 'NON-GO';
       riskLevel = 'High';
-      confidence = 90.0 + Math.random() * 3;
-      recommendations = [
-        'Inspect exhaust manifold for micro-cracks and carbon deposits.',
-        'Check turbine inlet/outlet flange seals and gasket torque.',
-        'Perform visual inspection on all exhaust slip-joints.'
-      ];
-    } else if (intakeSigns) {
+      confidence = 91;
+    } else if (intake) {
       prediction = 'Intake Leak';
       status = 'NON-GO';
       riskLevel = 'Medium';
-      confidence = 91.0 + Math.random() * 3;
-      recommendations = [
-        'Inspect intake manifold connections and silicone hose clamps.',
-        'Check charge-air cooler header welds for leaks.',
-        'Verify MAP sensor seals and intake piping integrity.'
-      ];
-    } else {
-      prediction = 'No Leak';
-      status = 'GO';
-      riskLevel = 'Low';
-      confidence = 96.0 + Math.random() * 3;
-      recommendations = [
-        'All parameters within nominal operating range.',
-        'Perform routine scheduled visual inspection.',
-        'Verify boost sensor and fuel trim readings.'
-      ];
+      confidence = 90;
     }
 
     const newReport = {
       timestamp: new Date().toLocaleString(),
       technician: technicianInfo?.fullName || 'Operator',
       role: technicianInfo?.role || 'Operator',
-      branch: technicianInfo?.branch || '',
-      engineModel: engineModel || 'C7',
-      // FEATURE 1: persist version metadata in the stored report
-      engineVersion:      engineVersion      || '',
-      engineVersionLabel: engineVersionLabel || '',
-      releaseYear:        releaseYear        || '',
-      manufacturingYear:  manufacturingYear  || '',
-      manufacturingYears: manufacturingYears || '',
+      engineModel,
+
+      engineVersion,
+      engineVersionLabel,
+      releaseYear,
+      manufacturingYear,
+      manufacturingYears,
+
       prediction,
       status,
-      confidence: parseFloat(confidence.toFixed(1)),
+      confidence,
       riskLevel,
       inputs,
       recommendations
     };
 
-    const savedReport = saveMockReport(newReport);
-    return { success: true, data: savedReport };
+    const saved = saveMockReport(newReport);
+    return { success: true, data: saved };
   }
 };
