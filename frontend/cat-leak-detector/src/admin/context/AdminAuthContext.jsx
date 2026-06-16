@@ -40,23 +40,79 @@ const addAuditLog = (user, action, details = '') => {
     console.warn('Audit log write failed:', e);
   }
 };
+const DEFAULT_ADMINS = [
+  {
+    id: 'ADM-001',
+    username: 'admin',
+    email: 'admin@caterpillar.com',
+    password: 'Admin@123456',
+    fullName: 'System Administrator',
+    role: 'Super Admin',
+    status: 'Active',
+    permissions: ['*'],
+    createdAt: new Date().toISOString(),
+    lastLogin: null,
+  },
+  {
+    id: 'ADM-002',
+    username: 'quality_manager',
+    email: 'quality@caterpillar.com',
+    password: 'Quality@123',
+    fullName: 'James Wilson',
+    role: 'Quality Manager',
+    status: 'Active',
+    permissions: ['reports.read', 'reports.write'],
+    createdAt: new Date().toISOString(),
+    lastLogin: null,
+  },
+  {
+    id: 'ADM-003',
+    username: 'engine_specialist',
+    email: 'engine.spec@caterpillar.com',
+    password: 'Engine@123',
+    fullName: 'Maria Garcia',
+    role: 'Engine Specialist',
+    status: 'Active',
+    permissions: ['reports.read'],
+    createdAt: new Date().toISOString(),
+    lastLogin: null,
+  }
+];
 
 export const AdminAuthProvider = ({ children }) => {
   const [adminUsers, setAdminUsers] = useState(() => {
-    try {
-      const saved = localStorage.getItem(ADMIN_USERS_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
+  try {
+    const saved = localStorage.getItem(ADMIN_USERS_KEY);
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed.map(u => ({
           ...u,
           permissions: u.permissions || [],
           status: u.status || 'Active',
         }));
       }
-    } catch (e) { /* ignore */ }
-    // Initialize with empty array - admin users must be added via addAdminUser
-    return [];
-  });
+    }
+
+    localStorage.setItem(
+      ADMIN_USERS_KEY,
+      JSON.stringify(DEFAULT_ADMINS)
+    );
+
+    return DEFAULT_ADMINS;
+  } catch (e) {
+    console.error('Admin initialization error:', e);
+
+    localStorage.setItem(
+      ADMIN_USERS_KEY,
+      JSON.stringify(DEFAULT_ADMINS)
+    );
+
+    return DEFAULT_ADMINS;
+  }
+});
 
   const [currentAdmin, setCurrentAdmin] = useState(() => {
     try {
@@ -146,11 +202,15 @@ export const AdminAuthProvider = ({ children }) => {
     // Simulate network delay
     await new Promise(r => setTimeout(r, 1200));
 
-    const user = adminUsers.find(
-      u => (u.username === username || u.email === username) && 
-           u.password === password && 
-           u.status === 'Active'
-    );
+   const user = adminUsers.find(
+  u =>
+    (
+      u.username?.toLowerCase() === username.toLowerCase() ||
+      u.email?.toLowerCase() === username.toLowerCase()
+    ) &&
+    u.password === password &&
+    u.status === 'Active'
+);
 
     if (user) {
       // Successful login - reset lockout
