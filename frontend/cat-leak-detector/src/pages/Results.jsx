@@ -409,55 +409,24 @@ export default function Results() {
 
         {/* ── 7. RECOMMENDATIONS ── */}
         <div>
-  <SectionTitle>Recommended Maintenance Actions</SectionTitle>
+          <SectionTitle>Recommended Maintenance Actions</SectionTitle>
 
-  <div className="bg-white border border-gray-200 rounded-xl">
-
-    {typeof recommendations === "string" ? (
-
-      <div className="flex items-start gap-3 px-5 py-4">
-        <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
-        <span className="text-sm text-gray-700 leading-relaxed">
-          {recommendations}
-        </span>
-      </div>
-
-    ) : (
-
-      (recommendations || []).map((rec, i) => (
-        <div key={i} className="flex items-start gap-3 px-5 py-4">
-          <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
-          <span className="text-sm text-gray-700 leading-relaxed">
-            {rec}
-          </span>
-        </div>
-      ))
-
-    )}
-
-  </div>
-</div>
-
-        <Divider />
-
-        {/* ── 8. PARAMETERS SUMMARY ── */}
-        <div>
-          <SectionTitle>Input Parameters Summary</SectionTitle>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {[
-              { label: 'Engine Model',       value: `CAT ${engineModel}` },
-              { label: 'Engine RPM',         value: `${inputs?.rpm} RPM` },
-              { label: 'Fuel Rate',          value: `${inputs?.fuelRate} L/hr` },
-              { label: 'Injection Time',     value: `${inputs?.fuelInjectionTime} ms` },
-              { label: 'Injection Pressure', value: `${inputs?.injectionPressure} bar` },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-center">
-                <p className="text-[9px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{label}</p>
-                <p className="text-sm font-bold text-gray-900">{value}</p>
+          <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+            {(typeof recommendations === "string"
+              ? recommendations.split(/\s*(?=\d+\.\s)/).filter(Boolean)
+              : (recommendations || [])
+            ).map((rec, i) => (
+              <div key={i} className="flex items-start gap-3 px-5 py-4">
+                <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
+                <span className="text-sm text-gray-700 leading-relaxed">
+                  {rec}
+                </span>
               </div>
             ))}
           </div>
         </div>
+
+
 
         <Divider />
 

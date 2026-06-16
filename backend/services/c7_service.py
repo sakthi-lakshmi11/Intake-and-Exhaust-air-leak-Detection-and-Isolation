@@ -11,38 +11,34 @@ from config import (
     C7_DATASET_PATH
 )
 
-print("Loading C7 Model...")
-
 # ==========================================
-# LOAD MODEL
+# DEFINE GLOBALS FOR LAZY LOADING
 # ==========================================
 
-model = load_model(
-    C7_MODEL_PATH,
-    compile=False
-)
+model = None
+scaler = None
+df = None
 
-# ==========================================
-# LOAD SCALER
-# ==========================================
-
-scaler = joblib.load(
-    C7_SCALER_PATH
-)
-
-# ==========================================
-# LOAD DATASET
-# ==========================================
-
-print("Loading C7 Dataset...")
-
-if C7_DATASET_PATH.endswith(".xlsx"):
-    df = pd.read_excel(C7_DATASET_PATH)
-else:
-    df = pd.read_csv(C7_DATASET_PATH)
-
-print("C7 Dataset Loaded")
-print("Rows :", len(df))
+def load_c7_assets():
+    global model, scaler, df
+    if model is None:
+        print("Loading C7 Model...")
+        model = load_model(
+            C7_MODEL_PATH,
+            compile=False
+        )
+    if scaler is None:
+        scaler = joblib.load(
+            C7_SCALER_PATH
+        )
+    if df is None:
+        print("Loading C7 Dataset...")
+        if C7_DATASET_PATH.endswith(".xlsx"):
+            df = pd.read_excel(C7_DATASET_PATH)
+        else:
+            df = pd.read_csv(C7_DATASET_PATH)
+        print("C7 Dataset Loaded")
+        print("Rows :", len(df))
 
 # ==========================================
 # FEATURES USED FOR MODEL
@@ -125,6 +121,8 @@ severity_map = {
 # ==========================================
 
 def run_c7_prediction():
+
+    load_c7_assets()
 
     # Select random 3-second window
     start_index = random.randint(

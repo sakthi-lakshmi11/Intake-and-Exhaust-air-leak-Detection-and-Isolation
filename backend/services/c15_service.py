@@ -15,39 +15,34 @@ from config import (
     C15_DATASET_PATH
 )
 
-print("Loading C15 Model...")
-
 # ==========================================
-# LOAD MODEL
+# DEFINE GLOBALS FOR LAZY LOADING
 # ==========================================
 
-model = load_model(
-    C15_MODEL_PATH
-)
+model = None
+scaler = None
+encoder = None
+df = None
 
-# ==========================================
-# LOAD SCALER
-# ==========================================
-
-scaler = joblib.load(
-    C15_SCALER_PATH
-)
-
-# ==========================================
-# LOAD ENCODER
-# ==========================================
-
-encoder = joblib.load(
-    C15_ENCODER_PATH
-)
-
-# ==========================================
-# LOAD DATASET
-# ==========================================
-
-df = pd.read_csv(
-    C15_DATASET_PATH
-)
+def load_c15_assets():
+    global model, scaler, encoder, df
+    if model is None:
+        print("Loading C15 Model...")
+        model = load_model(
+            C15_MODEL_PATH
+        )
+    if scaler is None:
+        scaler = joblib.load(
+            C15_SCALER_PATH
+        )
+    if encoder is None:
+        encoder = joblib.load(
+            C15_ENCODER_PATH
+        )
+    if df is None:
+        df = pd.read_csv(
+            C15_DATASET_PATH
+        )
 
 # ==========================================
 # FEATURES
@@ -78,6 +73,8 @@ feature_cols = [
 # ==========================================
 
 def run_c15_prediction():
+
+    load_c15_assets()
 
     sequence_ids = df["Sequence_ID"].unique()
 

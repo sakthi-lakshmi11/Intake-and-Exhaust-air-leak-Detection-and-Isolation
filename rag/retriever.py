@@ -20,14 +20,23 @@ CHUNKS_PATH = os.path.join(
     "recommendation_chunks.pkl"
 )
 
-# Load FAISS index
-index = faiss.read_index(INDEX_PATH)
+# Placeholders for lazy loading
+index = None
+chunks = None
 
-# Load chunks
-with open(CHUNKS_PATH, "rb") as f:
-    chunks = pickle.load(f)
+def load_retriever_assets():
+    global index, chunks
+    if index is None:
+        print("Loading FAISS index...")
+        index = faiss.read_index(INDEX_PATH)
+    if chunks is None:
+        print("Loading recommendation chunks...")
+        with open(CHUNKS_PATH, "rb") as f:
+            chunks = pickle.load(f)
 
 def retrieve_recommendation(section, severity, top_k=3):
+
+    load_retriever_assets()
 
     query = f"Section: {section} Severity: {severity}"
 

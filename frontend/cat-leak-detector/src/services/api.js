@@ -1,6 +1,6 @@
 // Flask API Integration Configuration
 const USE_MOCK_API = false;
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://127.0.0.1:5000/api';
 
 const REPORTS_STORAGE_KEY = 'cat_diagnostics_reports';
 const SEQ_KEY = 'cat_report_sequence'; // 🔥 FIXED GLOBAL COUNTER
@@ -27,10 +27,6 @@ const saveMockReport = (report) => {
   const current = getMockReports();
   const nextSeq = getNextSequence();
 
-  const saveMockReport = (report) => {
-  const current = getMockReports();
-  const nextSeq = getNextSequence();
-
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const seq = String(nextSeq).padStart(4, '0');
 
@@ -39,12 +35,6 @@ const saveMockReport = (report) => {
     id: `REP-${date}-${seq}`,
     analysisId: `ANL-${date}-${seq}`
   };
-
-  const updated = [reportWithId, ...current];
-  localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated));
-
-  return reportWithId;
-};
 
   const updated = [reportWithId, ...current];
   localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated));
