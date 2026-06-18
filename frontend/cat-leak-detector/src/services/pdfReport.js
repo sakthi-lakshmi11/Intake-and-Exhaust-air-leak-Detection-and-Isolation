@@ -24,8 +24,9 @@ const RED_LIGHT   = [254, 202, 202];
 ═══════════════════════════════════════════════════════════════════════════ */
 const PAGE_W    = 210;
 const PAGE_H    = 297;
-const MARGIN    = 14;
+const MARGIN    = 14;        
 const CONTENT_W = PAGE_W - MARGIN * 2;
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOW-LEVEL HELPERS

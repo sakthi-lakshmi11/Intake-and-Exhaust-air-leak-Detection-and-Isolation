@@ -234,6 +234,7 @@ def run_c7_prediction():
     print("FINAL SECTION =", section_map[section_class])
     print("FINAL SEVERITY =", severity_map[severity_class])
 
+
     return {
 
         "engine":

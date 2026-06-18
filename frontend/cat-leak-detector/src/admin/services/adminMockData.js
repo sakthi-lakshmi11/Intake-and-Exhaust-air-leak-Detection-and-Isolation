@@ -199,10 +199,28 @@ export const getRecentActivity = () => {
   return activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 20);
 };
 
+// Default engine records (seeded on first load)
+const DEFAULT_ENGINES = [
+  { id: 'ENG-C7-001',  model: 'C7',  version: 'C7 ACERT',              releaseYear: 2003, manufacturingYears: '2003 – 2010',    mfgYearValue: 2003, createdAt: new Date().toISOString() },
+  { id: 'ENG-C7-002',  model: 'C7',  version: 'C7 ACERT Tier 4 Interim', releaseYear: 2011, manufacturingYears: '2011 – 2014', mfgYearValue: 2011, createdAt: new Date().toISOString() },
+  { id: 'ENG-C7-003',  model: 'C7',  version: 'C7 ACERT Tier 4 Final',  releaseYear: 2014, manufacturingYears: '2014 – 2019',  mfgYearValue: 2014, createdAt: new Date().toISOString() },
+  { id: 'ENG-C7-004',  model: 'C7',  version: 'C7 ACERT (2020 Series)', releaseYear: 2020, manufacturingYears: '2020 – Present', mfgYearValue: 2020, createdAt: new Date().toISOString() },
+  { id: 'ENG-C15-001', model: 'C15', version: 'C15 ACERT',              releaseYear: 2004, manufacturingYears: '2004 – 2007',   mfgYearValue: 2004, createdAt: new Date().toISOString() },
+  { id: 'ENG-C15-002', model: 'C15', version: 'C15 ACERT Tier 4 Interim', releaseYear: 2008, manufacturingYears: '2008 – 2013', mfgYearValue: 2008, createdAt: new Date().toISOString() },
+  { id: 'ENG-C15-003', model: 'C15', version: 'C15 ACERT Tier 4 Final', releaseYear: 2014, manufacturingYears: '2014 – 2019',   mfgYearValue: 2014, createdAt: new Date().toISOString() },
+  { id: 'ENG-C15-004', model: 'C15', version: 'C15 ACERT (2020 Series)', releaseYear: 2020, manufacturingYears: '2020 – Present', mfgYearValue: 2020, createdAt: new Date().toISOString() },
+];
+
 // Engines
 // TODO: Replace with /api/engines
 export const getEngines = () => {
-  return getStoredData(STORAGE_KEYS.ENGINES, []);
+  const stored = getStoredData(STORAGE_KEYS.ENGINES, null);
+  // Seed default engines on first load if storage is empty
+  if (stored === null || stored.length === 0) {
+    setStoredData(STORAGE_KEYS.ENGINES, DEFAULT_ENGINES);
+    return DEFAULT_ENGINES;
+  }
+  return stored;
 };
 
 export const addEngine = (engine) => {
@@ -233,10 +251,80 @@ export const deleteEngine = (id) => {
   return filtered;
 };
 
+// Default leak zone records (seeded on first load)
+const DEFAULT_LEAK_ZONES = [
+  {
+    id: 'LZ-001', name: 'CS1 – Air Filter → MAF Sensor', engineModel: 'Both', zoneType: 'Intake',
+    description: 'Unfiltered ambient air first passes through the air filter. A differential pressure sensor monitors the pressure drop.',
+    imageUrl: '/zones/zone_cs1.png', updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'LZ-002', name: 'CS2 – MAF Sensor → Turbo Compressor Inlet', engineModel: 'Both', zoneType: 'Intake',
+    description: 'The MAF sensor measures metered airflow entering the turbo compressor inlet. Hose leaks here reduce turbo efficiency.',
+    imageUrl: '/zones/zone_cs2.png', updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'LZ-003', name: 'CS3 – Compressor Outlet → Charge Air Cooler', engineModel: 'Both', zoneType: 'Intake',
+    description: 'High-pressure, high-temperature compressed air exits the compressor and flows to the charge air cooler. Leaks cause pressure and temperature drops.',
+    imageUrl: '/zones/zone_cs3.png', updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'LZ-004', name: 'CS4 – CAC → Intake Manifold', engineModel: 'Both', zoneType: 'Intake',
+    description: 'Cooled air from the CAC flows to the intake manifold. Leaks here cause boost loss, reducing engine performance.',
+    imageUrl: '/zones/zone_cs4.png', updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'LZ-005', name: 'HS1 – Cylinder → Turbine Inlet', engineModel: 'Both', zoneType: 'Exhaust',
+    description: 'Hot exhaust gases exit the cylinders and enter the turbine inlet, spinning the turbine to drive the compressor. Leaks here waste exhaust energy.',
+    imageUrl: '/zones/zone_hs1.png', updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'LZ-006', name: 'DOC – Diesel Oxidation Catalyst', engineModel: 'Both', zoneType: 'Exhaust',
+    description: 'The DOC oxidizes unburnt hydrocarbons and CO into CO₂ and H₂O, reducing emissions and protecting downstream components.',
+    imageUrl: '/zones/zone_doc.png', updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'LZ-007', name: 'DPF – Diesel Particulate Filter', engineModel: 'Both', zoneType: 'Exhaust',
+    description: 'The DPF traps and burns particulate soot from exhaust gases. Leaks upstream reduce filtration efficiency and may release harmful soot.',
+    imageUrl: '/zones/zone_dpf.svg', updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'LZ-008', name: 'SCR – Selective Catalytic Reduction', engineModel: 'Both', zoneType: 'Exhaust',
+    description: 'The SCR uses urea (DEF) to convert harmful NOx into nitrogen and water, reducing emissions to meet regulatory standards.',
+    imageUrl: '/zones/zone_scr.svg', updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'LZ-009', name: 'Healthy (No Leak)', engineModel: 'Both', zoneType: 'Both',
+    description: 'All components are sealed and functioning properly. Airflow and exhaust flow are optimal with no leaks.',
+    imageUrl: '/zones/zone_healthy.svg', updatedAt: new Date().toISOString(),
+  },
+];
+
 // Leak Zones
 // TODO: Replace with /api/leak-zones
 export const getLeakZones = () => {
-  return getStoredData(STORAGE_KEYS.LEAK_ZONES, []);
+  const stored = getStoredData(STORAGE_KEYS.LEAK_ZONES, null);
+  // Seed default leak zones on first load if storage is empty
+  if (stored === null || stored.length === 0) {
+    setStoredData(STORAGE_KEYS.LEAK_ZONES, DEFAULT_LEAK_ZONES);
+    return DEFAULT_LEAK_ZONES;
+  }
+  
+  // Force update null imageUrls for specific zones with SVGs
+  let needsUpdate = false;
+  const updatedStored = stored.map(zone => {
+    if (zone.id === 'LZ-007' && !zone.imageUrl) { needsUpdate = true; return { ...zone, imageUrl: '/zones/zone_dpf.svg' }; }
+    if (zone.id === 'LZ-008' && !zone.imageUrl) { needsUpdate = true; return { ...zone, imageUrl: '/zones/zone_scr.svg' }; }
+    if (zone.id === 'LZ-009' && !zone.imageUrl) { needsUpdate = true; return { ...zone, imageUrl: '/zones/zone_healthy.svg' }; }
+    return zone;
+  });
+
+  if (needsUpdate) {
+    setStoredData(STORAGE_KEYS.LEAK_ZONES, updatedStored);
+    return updatedStored;
+  }
+
+  return stored;
 };
 
 export const addLeakZone = (zone) => {

@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="600" height="400">
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0d1b0e"/>
+      <stop offset="100%" style="stop-color:#1a2e1a"/>
+    </linearGradient>
+    <linearGradient id="healthy" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2E7D32"/>
+      <stop offset="100%" style="stop-color:#4CAF50"/>
+    </linearGradient>
+    <linearGradient id="metal3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#7B8B7B"/>
+      <stop offset="50%" style="stop-color:#5B6B5B"/>
+      <stop offset="100%" style="stop-color:#3B4B3B"/>
+    </linearGradient>
+    <filter id="greenGlow">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#4CAF50" flood-opacity="0.6"/>
+    </filter>
+    <filter id="shadow3">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="600" height="400" fill="url(#bg3)"/>
+  <!-- Badge -->
+  <circle cx="35" cy="30" r="16" fill="#4CAF50" filter="url(#greenGlow)"/>
+  <text x="35" y="35" font-family="Arial,sans-serif" font-weight="bold" font-size="18" fill="#fff" text-anchor="middle">✓</text>
+  <text x="60" y="36" font-family="Arial,sans-serif" font-weight="bold" font-size="16" fill="#4CAF50">Healthy (No Leak)</text>
+  <!-- Engine block (center) -->
+  <rect x="230" y="130" width="140" height="100" rx="10" fill="url(#metal3)" filter="url(#shadow3)" stroke="#4CAF50" stroke-width="2"/>
+  <text x="300" y="175" font-family="Arial,sans-serif" font-weight="bold" font-size="14" fill="#ccc" text-anchor="middle">ENGINE</text>
+  <text x="300" y="195" font-family="Arial,sans-serif" font-size="10" fill="#888" text-anchor="middle">All Cylinders OK</text>
+  <!-- Intake side (left) -->
+  <rect x="30" y="155" width="80" height="50" rx="6" fill="url(#metal3)" filter="url(#shadow3)" stroke="#4CAF50" stroke-width="1.5"/>
+  <text x="70" y="178" font-family="Arial,sans-serif" font-size="9" fill="#aaa" text-anchor="middle">Air Filter</text>
+  <text x="70" y="192" font-family="Arial,sans-serif" font-size="8" fill="#4CAF50" text-anchor="middle">● OK</text>
+  <rect x="130" y="155" width="80" height="50" rx="6" fill="url(#metal3)" filter="url(#shadow3)" stroke="#4CAF50" stroke-width="1.5"/>
+  <text x="170" y="175" font-family="Arial,sans-serif" font-size="9" fill="#aaa" text-anchor="middle">Turbo</text>
+  <text x="170" y="188" font-family="Arial,sans-serif" font-size="9" fill="#aaa" text-anchor="middle">Compressor</text>
+  <text x="170" y="200" font-family="Arial,sans-serif" font-size="8" fill="#4CAF50" text-anchor="middle">● OK</text>
+  <!-- Connecting lines intake -->
+  <line x1="110" y1="180" x2="130" y2="180" stroke="#4CAF50" stroke-width="3" opacity="0.7"/>
+  <line x1="210" y1="180" x2="230" y2="180" stroke="#4CAF50" stroke-width="3" opacity="0.7"/>
+  <!-- Exhaust side (right) -->
+  <rect x="390" y="155" width="80" height="50" rx="6" fill="url(#metal3)" filter="url(#shadow3)" stroke="#4CAF50" stroke-width="1.5"/>
+  <text x="430" y="175" font-family="Arial,sans-serif" font-size="9" fill="#aaa" text-anchor="middle">Turbine</text>
+  <text x="430" y="188" font-family="Arial,sans-serif" font-size="9" fill="#aaa" text-anchor="middle">Inlet</text>
+  <text x="430" y="200" font-family="Arial,sans-serif" font-size="8" fill="#4CAF50" text-anchor="middle">● OK</text>
+  <rect x="490" y="155" width="80" height="50" rx="6" fill="url(#metal3)" filter="url(#shadow3)" stroke="#4CAF50" stroke-width="1.5"/>
+  <text x="530" y="175" font-family="Arial,sans-serif" font-size="9" fill="#aaa" text-anchor="middle">After-</text>
+  <text x="530" y="188" font-family="Arial,sans-serif" font-size="9" fill="#aaa" text-anchor="middle">treatment</text>
+  <text x="530" y="200" font-family="Arial,sans-serif" font-size="8" fill="#4CAF50" text-anchor="middle">● OK</text>
+  <!-- Connecting lines exhaust -->
+  <line x1="370" y1="180" x2="390" y2="180" stroke="#4CAF50" stroke-width="3" opacity="0.7"/>
+  <line x1="470" y1="180" x2="490" y2="180" stroke="#4CAF50" stroke-width="3" opacity="0.7"/>
+  <!-- Flow arrows -->
+  <polygon points="115,173 125,180 115,187" fill="#4CAF50" opacity="0.8"/>
+  <polygon points="215,173 225,180 215,187" fill="#4CAF50" opacity="0.8"/>
+  <polygon points="375,173 385,180 375,187" fill="#4CAF50" opacity="0.8"/>
+  <polygon points="475,173 485,180 475,187" fill="#4CAF50" opacity="0.8"/>
+  <!-- Status bar -->
+  <rect x="150" y="270" width="300" height="45" rx="10" fill="url(#healthy)" filter="url(#greenGlow)" opacity="0.9"/>
+  <text x="300" y="290" font-family="Arial,sans-serif" font-weight="bold" font-size="14" fill="#fff" text-anchor="middle">ALL SYSTEMS OPERATIONAL</text>
+  <text x="300" y="306" font-family="Arial,sans-serif" font-size="10" fill="#E8F5E9" text-anchor="middle">No leaks detected • Optimal performance</text>
+  <!-- Description -->
+  <text x="300" y="350" font-family="Arial,sans-serif" font-size="12" fill="#7CB342" text-anchor="middle">All components sealed and functioning properly</text>
+  <text x="300" y="370" font-family="Arial,sans-serif" font-size="11" fill="#689F38" text-anchor="middle">Airflow and exhaust flow are optimal with no leaks</text>
+</svg>

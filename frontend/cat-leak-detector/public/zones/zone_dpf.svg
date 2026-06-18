@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="600" height="400">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B8B8B"/>
+      <stop offset="50%" style="stop-color:#6B6B6B"/>
+      <stop offset="100%" style="stop-color:#4B4B4B"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ff6b35"/>
+      <stop offset="100%" style="stop-color:#ff8c42"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="600" height="400" fill="url(#bg)"/>
+  <!-- Badge -->
+  <rect x="20" y="15" width="70" height="32" rx="4" fill="#FFCD11"/>
+  <text x="55" y="37" font-family="Arial,sans-serif" font-weight="bold" font-size="18" fill="#111" text-anchor="middle">DPF</text>
+  <text x="100" y="37" font-family="Arial,sans-serif" font-weight="bold" font-size="15" fill="#fff">Diesel Particulate Filter</text>
+  <!-- Inlet pipe -->
+  <rect x="40" y="150" width="120" height="60" rx="8" fill="url(#metal)" filter="url(#shadow)"/>
+  <rect x="50" y="160" width="100" height="40" rx="4" fill="#555"/>
+  <!-- Main DPF body -->
+  <rect x="160" y="120" width="280" height="120" rx="16" fill="url(#metal)" filter="url(#shadow)" stroke="#777" stroke-width="2"/>
+  <!-- Honeycomb pattern inside -->
+  <g opacity="0.4">
+    <line x1="200" y1="130" x2="200" y2="230" stroke="#999" stroke-width="1"/>
+    <line x1="230" y1="130" x2="230" y2="230" stroke="#999" stroke-width="1"/>
+    <line x1="260" y1="130" x2="260" y2="230" stroke="#999" stroke-width="1"/>
+    <line x1="290" y1="130" x2="290" y2="230" stroke="#999" stroke-width="1"/>
+    <line x1="320" y1="130" x2="320" y2="230" stroke="#999" stroke-width="1"/>
+    <line x1="350" y1="130" x2="350" y2="230" stroke="#999" stroke-width="1"/>
+    <line x1="380" y1="130" x2="380" y2="230" stroke="#999" stroke-width="1"/>
+    <line x1="410" y1="130" x2="410" y2="230" stroke="#999" stroke-width="1"/>
+    <line x1="170" y1="155" x2="430" y2="155" stroke="#999" stroke-width="1"/>
+    <line x1="170" y1="180" x2="430" y2="180" stroke="#999" stroke-width="1"/>
+    <line x1="170" y1="205" x2="430" y2="205" stroke="#999" stroke-width="1"/>
+  </g>
+  <!-- Soot particles -->
+  <circle cx="195" cy="150" r="4" fill="#333" opacity="0.7"/>
+  <circle cx="225" cy="170" r="3" fill="#333" opacity="0.6"/>
+  <circle cx="210" cy="200" r="5" fill="#333" opacity="0.7"/>
+  <circle cx="240" cy="145" r="3" fill="#333" opacity="0.5"/>
+  <!-- Outlet pipe -->
+  <rect x="440" y="150" width="120" height="60" rx="8" fill="url(#metal)" filter="url(#shadow)"/>
+  <rect x="450" y="160" width="100" height="40" rx="4" fill="#555"/>
+  <!-- Flow arrows -->
+  <polygon points="70,165 100,180 70,195" fill="url(#glow)" opacity="0.9"/>
+  <polygon points="470,165 500,180 470,195" fill="#4CAF50" opacity="0.9"/>
+  <!-- Labels -->
+  <text x="100" y="235" font-family="Arial,sans-serif" font-size="11" fill="#aaa">Exhaust In</text>
+  <text x="470" y="235" font-family="Arial,sans-serif" font-size="11" fill="#aaa">Clean Out</text>
+  <!-- Description -->
+  <text x="300" y="300" font-family="Arial,sans-serif" font-size="12" fill="#ccc" text-anchor="middle">Traps and burns particulate soot from exhaust gases</text>
+  <text x="300" y="320" font-family="Arial,sans-serif" font-size="11" fill="#999" text-anchor="middle">Leaks upstream reduce filtration efficiency</text>
+</svg>

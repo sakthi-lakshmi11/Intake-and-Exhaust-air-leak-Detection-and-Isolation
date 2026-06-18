@@ -212,8 +212,10 @@ def run_c15_prediction():
             ]
         )
     }
+    
     print("FINAL SECTION =", location_map.get(leak_label))
     print("FINAL SEVERITY =", severity_text)
+
 
     return {
 
@@ -238,3 +240,4 @@ def run_c15_prediction():
         "inputs":
         dashboard_inputs
     }
+ 

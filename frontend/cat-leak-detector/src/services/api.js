@@ -159,7 +159,53 @@ export const api = {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ inputs, technician: technicianInfo })
         });
-        return await response.json();
+        const apiResult = await response.json();
+
+        // Map backend field names → admin dashboard expected field names,
+        // then persist to localStorage so the admin dashboard can read it.
+        if (apiResult && apiResult.success && apiResult.data) {
+          const backendData = apiResult.data;
+
+          // Derive a human-readable prediction label from leak_section/go_nogo
+          const goNogo    = backendData.go_nogo   || 'GO';
+          const leakSec   = backendData.leak_section || 'Healthy';
+          const severity  = backendData.severity  || 'Healthy';
+
+          // Map severity text → riskLevel expected by admin dashboard
+          const severityToRisk = {
+            'Healthy':               'Low',
+            'No Leak Detected-Healthy': 'Low',
+            'Low Severity Leak':     'Low',
+            'Moderate Severity Leak':'Medium',
+            'High Severity Leak':    'High',
+          };
+
+          const prediction = goNogo === 'GO' ? 'No Leak' : leakSec;
+          const riskLevel  = severityToRisk[severity] || (goNogo === 'GO' ? 'Low' : 'High');
+
+          const reportToSave = {
+            timestamp:          new Date().toLocaleString(),
+            technician:         technicianInfo?.fullName || 'Operator',
+            role:               technicianInfo?.role     || 'Operator',
+            engineModel:        backendData.engine       || inputs?.engineModel || 'C15',
+            prediction,
+            status:             goNogo,
+            confidence:         Math.round(backendData.confidence || 0),
+            riskLevel,
+            inputs,
+            recommendations:    backendData.recommendations || [],
+            leak_section:       leakSec,
+            severity,
+            go_nogo:            goNogo,
+          };
+
+          const saved = saveMockReport(reportToSave);
+
+          // Return the enriched record so Results.jsx gets proper field names too
+          return { success: true, data: { ...backendData, ...saved } };
+        }
+
+        return apiResult;
       } catch (err) {
         console.warn('Flask API failed. Using fallback model.', err);
       }
