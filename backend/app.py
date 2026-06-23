@@ -2,11 +2,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 from services.c15_service import (
-    run_c15_prediction
+    run_c15_prediction,
+    get_random_c15_sequence
 )
 
 from services.c7_service import (
-    run_c7_prediction
+    run_c7_prediction,
+    get_random_c7_sequence
 )
 
 from rag_engine import (
@@ -65,14 +67,16 @@ def predict():
 
         if engine_model.upper() == "C15":
 
+            sequence_id = inputs.get("sequence_id")
             prediction_result = (
-                run_c15_prediction()
+                run_c15_prediction(sequence_id=sequence_id)
             )
 
         elif engine_model.upper() == "C7":
 
+            sequence_id = inputs.get("sequence_id")
             prediction_result = (
-                run_c7_prediction()
+                run_c7_prediction(start_index=sequence_id)
             )
 
         else:
@@ -122,6 +126,40 @@ def predict():
 # ==========================================
 # TEST API
 # ==========================================
+
+@app.route(
+    "/api/random-c15-sequence",
+    methods=["GET"]
+)
+def random_c15_sequence():
+    try:
+        data = get_random_c15_sequence()
+        return jsonify({
+            "success": True,
+            "data": data
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
+@app.route(
+    "/api/random-c7-sequence",
+    methods=["GET"]
+)
+def random_c7_sequence():
+    try:
+        data = get_random_c7_sequence()
+        return jsonify({
+            "success": True,
+            "data": data
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
 
 @app.route(
     "/api/test",

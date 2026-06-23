@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import joblib
@@ -13,8 +14,17 @@ encoder = joblib.load("leak_label_encoder.pkl")
 # ==========================
 # Load Dataset
 # ==========================
-df = pd.read_csv("c15_air_leak_dataset.csv")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+DATASET_PATH = os.path.join(
+    BASE_DIR,
+    "..",
+    "..",
+    "datasets",
+    "c15_air_leak_dataset.csv"
+)
+
+df = pd.read_csv(DATASET_PATH)
 feature_cols = [
     "RPM",
     "Fuel_Rate",
@@ -38,9 +48,21 @@ feature_cols = [
 # ==========================
 # INPUT SEQUENCE
 # ==========================
-test_sequence = 22
+import random
 
-seq = df[df["Sequence_ID"] == test_sequence].sort_values("TimeStep")
+test_sequence = random.choice(
+    df["Sequence_ID"].unique()
+)
+
+print("Selected Sequence =", test_sequence)
+
+seq = df[df["Sequence_ID"] == test_sequence]
+
+print("\n===== SELECTED SEQUENCE DATA =====")
+print(seq[feature_cols].head())
+print("==================================")
+
+
 
 X = seq[feature_cols].values
 X = scaler.transform(X)

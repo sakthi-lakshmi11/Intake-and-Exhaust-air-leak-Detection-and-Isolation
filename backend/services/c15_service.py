@@ -72,15 +72,31 @@ feature_cols = [
 # MAIN PREDICTION FUNCTION
 # ==========================================
 
-def run_c15_prediction():
+def get_random_c15_sequence():
+    load_c15_assets()
+    sequence_ids = df["Sequence_ID"].unique()
+    chosen_sequence = random.choice(sequence_ids)
+    seq = df[df["Sequence_ID"] == chosen_sequence].sort_values("TimeStep")
+
+    return {
+        "sequence_id": int(chosen_sequence),
+        "inputs": {
+            "rpm": float(seq.iloc[0]["RPM"]),
+            "fuelRate": float(seq.iloc[0]["Fuel_Rate"]),
+            "injectionPressure": float(seq.iloc[0]["Fuel_Injection_Pressure"]),
+            "fuelInjectionTime": float(seq.iloc[0]["Fuel_Injection_Time"])
+        }
+    }
+
+def run_c15_prediction(sequence_id=None):
 
     load_c15_assets()
 
-    sequence_ids = df["Sequence_ID"].unique()
-
-    chosen_sequence = random.choice(
-        sequence_ids
-    )
+    if sequence_id is not None:
+        chosen_sequence = sequence_id
+    else:
+        sequence_ids = df["Sequence_ID"].unique()
+        chosen_sequence = random.choice(sequence_ids)
 
     seq = (
         df[df["Sequence_ID"] == chosen_sequence]

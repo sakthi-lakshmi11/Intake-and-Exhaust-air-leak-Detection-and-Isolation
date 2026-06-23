@@ -242,6 +242,56 @@ export const api = {
     return getMockReports().map(normalizeReport).filter(Boolean);
   },
 
+  // GET RANDOM C15 SEQUENCE
+  getRandomC15Sequence: async () => {
+    if (!USE_MOCK_API) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/random-c15-sequence`);
+        return await response.json();
+      } catch (err) {
+        return { success: false, message: `Flask API connection error: ${err.message}` };
+      }
+    }
+    // Mock for C15 sequence
+    return {
+      success: true,
+      data: {
+        sequence_id: 101,
+        inputs: {
+          rpm: 1550,
+          fuelRate: 42,
+          injectionPressure: 1300,
+          fuelInjectionTime: 2.3
+        }
+      }
+    };
+  },
+
+  // GET RANDOM C7 SEQUENCE
+  getRandomC7Sequence: async () => {
+    if (!USE_MOCK_API) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/random-c7-sequence`);
+        return await response.json();
+      } catch (err) {
+        return { success: false, message: `Flask API connection error: ${err.message}` };
+      }
+    }
+    // Mock for C7 sequence
+    return {
+      success: true,
+      data: {
+        sequence_id: 42,
+        inputs: {
+          rpm: 1450,
+          fuelRate: 18,
+          injectionPressure: 900,
+          fuelInjectionTime: 1.6
+        }
+      }
+    };
+  },
+
   // PREDICT
   predict: async (inputs, technicianInfo) => {
     if (!USE_MOCK_API) {

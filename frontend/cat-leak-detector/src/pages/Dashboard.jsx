@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { api } from '../services/api';
 import { Play, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
@@ -147,9 +148,11 @@ export default function Dashboard() {
   const [engineVersion, setEngineVersion] = useState(ENGINE_VERSION_DB['C7'][0].value);
 
   // Input parameters
-  const [inputs, setInputs]   = useState({ ...DEFAULTS['C7'] });
+  const [inputs, setInputs]   = useState({ rpm: '', fuelRate: '', fuelInjectionTime: '', injectionPressure: '' });
   const [errors, setErrors]   = useState({});
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [sequenceId, setSequenceId] = useState(null);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   // ── FEATURE 1: derive the full version object from current selection ──────
   const versionOptions   = ENGINE_VERSION_DB[engineFamily] ?? [];
@@ -168,8 +171,9 @@ export default function Dashboard() {
     setEngineConfig(defaultConfig);
     setTurboConfig(defaultTurbo);
     setEngineVersion(defaultVersion);
-    setInputs({ ...DEFAULTS[family] });
+    setInputs({ rpm: '', fuelRate: '', fuelInjectionTime: '', injectionPressure: '' });
     setErrors({});
+    setSequenceId(null);
   };
 
   const handleConfigChange = (config) => {
@@ -185,50 +189,62 @@ export default function Dashboard() {
   };
 
   const handleChange = (key, value) => {
-    setInputs((prev) => ({ ...prev, [key]: value }));
-    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: null }));
+    return; // All fields are read-only and auto-populated
   };
 
   const validate = () => {
     const errs = {};
-    FIELDS.forEach(({ key, min, max, label }) => {
-      const val = parseFloat(inputs[key]);
-      if (inputs[key] === '' || isNaN(val)) {
-        errs[key] = `${label}${t('sensorInputRequired') || ' is required.'}`;
-      } else if (val < min || val > max) {
-        errs[key] = `${t('sensorInputRange') || 'Valid range:'} ${min} – ${max}`;
-      }
-    });
     // Edge case: no version available for engine family
     if (!selectedVersion) errs._version = 'Please select a valid engine version.';
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
-    const parsed = {};
-    FIELDS.forEach(({ key }) => { parsed[key] = parseFloat(inputs[key]); });
+    setIsLoadingData(true);
+    const res = engineFamily === 'C15' 
+      ? await api.getRandomC15Sequence() 
+      : await api.getRandomC7Sequence();
+    
+    if (res.success && res.data) {
+      setSequenceId(res.data.sequence_id);
+      const fetchedInputs = {
+        rpm: res.data.inputs.rpm,
+        fuelRate: res.data.inputs.fuelRate,
+        injectionPressure: res.data.inputs.injectionPressure,
+        fuelInjectionTime: res.data.inputs.fuelInjectionTime,
+      };
+      setInputs(fetchedInputs);
+      setErrors({});
 
-    navigate('/analysis', {
-      state: {
-        inputs: {
-          ...parsed,
-          engineModel:       engineFamily,
-          engineFamily,
-          engineConfig,
-          turboConfig,
-          // FEATURE 1: pass auto-populated year values to analysis/results
-          engineVersion:     selectedVersion?.value       ?? '',
-          engineVersionLabel: selectedVersion?.label      ?? '',
-          releaseYear:       selectedVersion?.releaseYear ?? '',
-          manufacturingYear: mfgYearValue,
-          manufacturingYears: displayMfgYear,
-        },
-      },
-    });
+      // Wait 2 seconds so the user can see the values
+      setTimeout(() => {
+        setIsLoadingData(false);
+        navigate('/analysis', {
+          state: {
+            inputs: {
+              ...fetchedInputs,
+              engineModel: engineFamily,
+              engineFamily,
+              engineConfig,
+              turboConfig,
+              engineVersion: selectedVersion?.value ?? '',
+              engineVersionLabel: selectedVersion?.label ?? '',
+              releaseYear: selectedVersion?.releaseYear ?? '',
+              manufacturingYear: mfgYearValue,
+              manufacturingYears: displayMfgYear,
+              sequence_id: res.data.sequence_id
+            },
+          },
+        });
+      }, 2000);
+    } else {
+      setIsLoadingData(false);
+      alert("Failed to fetch engine data from dataset.");
+    }
   };
 
   return (
@@ -365,14 +381,17 @@ export default function Dashboard() {
                   type="number"
                   value={inputs[key]}
                   onChange={(e) => handleChange(key, e.target.value)}
-                  placeholder={placeholder}
-                  className={`w-full px-4 py-3 text-sm font-normal rounded-lg border bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 transition-all duration-150 ${
+                  placeholder="Awaiting Data Fetch..."
+                  disabled={true}
+                  className={`w-full px-4 py-3 text-sm font-normal rounded-lg border transition-all duration-150 bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed opacity-80 ${
                     errors[key]
-                      ? 'border-red-400 focus:ring-red-300/40 focus:border-red-400'
-                      : 'border-gray-300 hover:border-gray-400 focus:ring-cat-yellow/40 focus:border-cat-yellow'
+                      ? '!border-red-400 !focus:ring-red-300/40 !focus:border-red-400'
+                      : ''
                   }`}
                 />
-                {errors[key] && <p className="mt-1.5 text-[11px] text-red-500">{errors[key]}</p>}
+                <p className="mt-1.5 text-[10px] text-gray-400 uppercase tracking-wide">
+                  {inputs[key] ? 'Auto-populated from test dataset' : 'Will be auto-populated'}
+                </p>
               </div>
             ))}
           </div>
@@ -381,13 +400,25 @@ export default function Dashboard() {
           <div className="h-px bg-gray-100 my-8" />
 
           {/* Submit */}
-          <button
-            type="submit"
-            className="w-full flex items-center justify-center gap-3 bg-cat-yellow text-cat-black font-extrabold text-[13px] uppercase tracking-[0.18em] py-4 rounded-lg shadow-sm hover:bg-yellow-400 hover:shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer mt-8"
-          >
-            <Play className="w-4 h-4 fill-current" />
-            {t('startAnalysis') || 'Start Analysis'}
-          </button>
+<button
+  type="submit"
+  disabled={isLoadingData}
+  className={`w-full flex items-center justify-center gap-3 bg-cat-yellow text-cat-black font-extrabold text-[13px] uppercase tracking-[0.18em] py-4 rounded-lg shadow-sm hover:bg-yellow-400 hover:shadow-md active:scale-[0.99] transition-all duration-200 mt-2 ${
+    isLoadingData ? 'opacity-80 cursor-wait' : 'cursor-pointer'
+  }`}
+>
+  {isLoadingData ? (
+    <span className="flex items-center gap-2">
+      <span className="w-4 h-4 border-2 border-cat-black border-t-transparent rounded-full animate-spin"></span>
+      {t('fetchingEngineData') || 'Fetching Engine Data...'}
+    </span>
+  ) : (
+    <>
+      <Play className="w-4 h-4 fill-current" />
+      {t('startAnalysis') || 'Start AI Diagnostics'}
+    </>
+  )}
+</button>
 
           {/* Footer note — now shows version label + mfg year range */}
           <p className="text-center text-[11px] text-gray-400 pb-2">

@@ -45,34 +45,22 @@ def load_c7_assets():
 # ==========================================
 
 feature_columns = [
-
     'RPM',
     'Fuel_rate_kg_hr',
     'Fuel_injection_pressure_bar',
     'Fuel_injection_time_ms',
-
     'Filter_deltaP_Residual',
     'Turbo_inlet_pressure_Residual',
     'turbo_speed_Residual',
-
     'Compressor_outlet_pressure_Residual',
-
     'Compressor_outlet_temperature_Residual',
-
     'MAP_Residual',
-
     'MAT_Residual',
-
     'Turbine_inlet_pressure_Residual',
-
     'DOC_inlet_egt_Residual',
-
     'DOC_outlet_egt_Residual',
-
     'DPF_deltaP_Residual',
-
     'DPF_egt_Residual',
-
     'Nox_Residual'
 ]
 
@@ -81,23 +69,14 @@ feature_columns = [
 # ==========================================
 
 section_map = {
-
     0: "Healthy",
-
     1: "Air Filter to MAF Sensor",
-
     2: "MAF Sensor to Turbocharger Compressor Inlet",
-
     3: "Compressor Outlet to Charge Air Cooler",
-
     4: "Charge Air Cooler (CAC) to Intake Manifold",
-
     5: "Cylinder to Turbocharger Turbine Inlet",
-
     6: "Diesel Oxidation Catalyst",
-
     7: "Diesel Particulate Filter",
-
     8: "Selective Catalytic Reduction"
 }
 
@@ -106,13 +85,9 @@ section_map = {
 # ==========================================
 
 severity_map = {
-
     0: "No Leak Detected-Healthy",
-
     1: "Low Severity Leak",
-
     2: "Moderate Severity Leak",
-
     3: "High Severity Leak"
 }
 
@@ -120,60 +95,74 @@ severity_map = {
 # MAIN PREDICTION FUNCTION
 # ==========================================
 
-def run_c7_prediction():
+def get_random_c7_sequence():
+    load_c7_assets()
+    start_index = random.randint(0, len(df) - 30)
+    seq = df.iloc[start_index:start_index + 30]
+    
+    return {
+        "sequence_id": start_index,
+        "inputs": {
+            "rpm": float(seq.iloc[0]["RPM"]),
+            "fuelRate": float(seq.iloc[0]["Fuel_rate_kg_hr"]),
+            "injectionPressure": float(seq.iloc[0]["Fuel_injection_pressure_bar"]),
+            "fuelInjectionTime": float(seq.iloc[0]["Fuel_injection_time_ms"])
+        }
+    }
 
+def run_c7_prediction(start_index=None):
     load_c7_assets()
 
-    # Select random 3-second window
-    start_index = random.randint(
-        0,
-        len(df) - 30
-    )
+    # 1. Select random continuous window to simulate live stream engine sequences
+    if start_index is not None:
+        idx = start_index
+    else:
+        idx = random.randint(
+            0,
+            len(df) - 30
+        )
 
     seq = df.iloc[
-        start_index:start_index + 30
+        idx:idx + 30
     ]
 
-    # Prepare model input
-    X = seq[
-        feature_columns
-    ].values
-
+    # 2. Prepare the sequential model inputs
+    X = seq[feature_columns].values
     X_scaled = scaler.transform(X)
-
     X_scaled = np.expand_dims(
         X_scaled,
         axis=0
     )
 
-    # Run prediction
+    # 3. Run parallel output model prediction matrix inference
     predictions = model.predict(
         X_scaled,
         verbose=0
     )
 
-    section_class = int(
+    # --- FIX CRITICAL: Align indices to match Keras multi-output compilation order ---
+    # According to training logs: [0] is Go_NoGo_Output, [1] is Section_Output, [2] is Severity_Output
+    go_class = int(
         np.argmax(predictions[0])
     )
-
-    severity_class = int(
+    
+    section_class = int(
         np.argmax(predictions[1])
     )
 
-    go_score = float(
-        predictions[2][0][0]
+    severity_class = int(
+        np.argmax(predictions[2])
     )
 
-    print("\n===== MODEL OUTPUT =====")
+    print("\n===== BACKEND MODEL OUTPUT INTERACTION =====")
+    print("GO/NO-GO Class Integer =", go_class)
+    print("Section Class Integer  =", section_class)
+    print("Severity Class Integer =", severity_class)
+    print("============================================") 
 
-    print("Section Class =", section_class)
-    print("Severity Class =", severity_class)
-    print("GO Score =", go_score)
-
-    print("========================") 
-
+    # Calculate overall confidence using highest probability from section mapping layer
     confidence = float(
-        np.max(predictions[0]) * 100
+        np.max(predictions[1]) * 100
     )
 
     # ==========================================
@@ -190,6 +179,9 @@ def run_c7_prediction():
         "Unknown"
     )
 
+    # Map validation binary classification flags
+    go_nogo_status = "GO" if go_class == 1 else "NO-GO"
+
     # ==========================================
     # GET RAG RECOMMENDATIONS
     # ==========================================
@@ -200,63 +192,26 @@ def run_c7_prediction():
     )
 
     # ==========================================
-    # DASHBOARD VALUES
+    # DASHBOARD VALUES FOR FRONTEND SIMULATION
     # ==========================================
 
     dashboard_inputs = {
-
-        "rpm":
-        float(
-            seq.iloc[0]["RPM"]
-        ),
-
-        "fuel_rate":
-        float(
-            seq.iloc[0][
-                "Fuel_rate_kg_hr"
-            ]
-        ),
-
-        "fuel_injection_pressure":
-        float(
-            seq.iloc[0][
-                "Fuel_injection_pressure_bar"
-            ]
-        ),
-
-        "fuel_injection_time":
-        float(
-            seq.iloc[0][
-                "Fuel_injection_time_ms"
-            ]
-        )
+        "rpm": float(seq.iloc[0]["RPM"]),
+        "fuel_rate": float(seq.iloc[0]["Fuel_rate_kg_hr"]),
+        "fuel_injection_pressure": float(seq.iloc[0]["Fuel_injection_pressure_bar"]),
+        "fuel_injection_time": float(seq.iloc[0]["Fuel_injection_time_ms"])
     }
-    print("FINAL SECTION =", section_map[section_class])
-    print("FINAL SEVERITY =", severity_map[severity_class])
-
+    
+    print("FINAL RESOLVED STATUS   =", go_nogo_status)
+    print("FINAL RESOLVED SECTION  =", leak_section)
+    print("FINAL RESOLVED SEVERITY =", severity)
 
     return {
-
-        "engine":
-        "C7",
-
-        "go_nogo":
-        "GO"
-        if go_score > 0.5
-        else "NO-GO",
-
-        "leak_section":
-        leak_section,
-
-        "severity":
-        severity,
-
-        "confidence":
-        round(confidence, 2),
-
-        "recommendations":
-        recommendations,
-
-        "inputs":
-        dashboard_inputs
+        "engine": "C7",
+        "go_nogo": go_nogo_status,
+        "leak_section": leak_section,
+        "severity": severity,
+        "confidence": round(confidence, 2),
+        "recommendations": recommendations,
+        "inputs": dashboard_inputs
     }
