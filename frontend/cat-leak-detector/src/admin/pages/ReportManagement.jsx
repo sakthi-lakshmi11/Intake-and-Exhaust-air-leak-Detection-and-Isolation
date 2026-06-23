@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
-import { Search, Download, Eye, X, ChevronDown } from 'lucide-react';
-import { getReports } from '../services/adminMockData';
+import { Search, Download, Eye, X, ChevronDown, RefreshCw } from 'lucide-react';
+import { api } from '../../services/api';
 import { generateDiagnosticPDF } from '../../services/pdfReport';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
@@ -31,10 +31,29 @@ export default function ReportManagement() {
   const [sortBy, setSortBy] = useState('timestamp');
   const [sortDir, setSortDir] = useState('desc');
   const [selectedReport, setSelectedReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadReports = async () => {
+    const data = await api.getReports();
+    setReports(data);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    setReports(getReports());
+    loadReports();
   }, []);
+
+  useEffect(() => {
+    const handleFocus = () => loadReports();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadReports().finally(() => setRefreshing(false));
+  };
 
   const filtered = reports.filter(r =>
     !search ||
@@ -70,6 +89,14 @@ export default function ReportManagement() {
             <h1 className="text-xl font-extrabold text-gray-900 uppercase tracking-tight">Diagnostic Reports</h1>
             <p className="text-xs text-gray-500 mt-1">{reports.length} Total Reports</p>
           </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors disabled:opacity-50"
+            title="Refresh reports"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
@@ -85,6 +112,11 @@ export default function ReportManagement() {
           </div>
         </div>
 
+        {loading ? (
+          <div className="bg-white border border-gray-200 rounded-lg p-12 text-center text-sm text-gray-500">
+            Loading reports...
+          </div>
+        ) : (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -158,6 +190,7 @@ export default function ReportManagement() {
             </table>
           </div>
         </div>
+        )}
       </div>
 
       {selectedReport && (

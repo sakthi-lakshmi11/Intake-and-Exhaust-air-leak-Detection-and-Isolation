@@ -5,6 +5,15 @@ import { useLanguage } from '../context/LanguageContext';
 import { Play, ChevronDown, CheckCircle2 } from 'lucide-react';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
+
+const formatLabel = (value = '') =>
+  String(value)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
 // ENGINE VERSION DATABASE
 export const ENGINE_VERSION_DB = {
   C7: [
@@ -79,11 +88,12 @@ const FIELDS = [
 function CustomDropdown({ id, label, required, options, value, onChange, openDropdown, setOpenDropdown }) {
   const selected = options.find((o) => o.value === value);
   const isOpen = openDropdown === id;
+  const readableLabel = formatLabel(label);
 
   return (
-    <div>
-      <label className="block text-[11px] font-semibold uppercase tracking-widest text-gray-500 mb-2">
-        {label} {required && <span className="text-cat-yellow">*</span>}
+    <div className="space-y-2">
+      <label className="block text-xs font-semibold tracking-wide text-gray-600">
+        {readableLabel} {required && <span className="text-cat-yellow">*</span>}
       </label>
       <div className="relative w-full">
         <button
@@ -234,7 +244,7 @@ export default function Dashboard() {
             {t('dashboardBadge') || 'NovaCrafters Diagnostics Platform'}
           </p>
           <h1 className="main-heading-white leading-tight">
-            {t('heroTitle') || 'Intake and Exhaust Air Leak Detection'}
+            {t('heroTitle') || 'Intake and Exhaust Air Leak Detection and Isolation'}
           </h1>
           <p className="mt-2 text-sm text-gray-500 font-normal">
             {t('dashboardSubtitle') || 'Engine Configuration and Operating Parameters'}
@@ -243,7 +253,7 @@ export default function Dashboard() {
         </div>
 
         {/* ── Form ── */}
-        <form onSubmit={handleSubmit} noValidate className="space-y-7">
+        <form onSubmit={handleSubmit} noValidate className="space-y-8">
 
           {/* ── CASCADING DROPDOWNS — ROW 1: Engine Family + Engine Config ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -261,7 +271,7 @@ export default function Dashboard() {
 
             <CustomDropdown
               id="config"
-              label={t('engineConfigLabel') || 'Engine Configuration'}
+              label={formatLabel(t('engineConfigLabel') || 'ENGINECONFIGLABEL')}
               required
               options={ENGINE_CONFIG_BY_FAMILY[engineFamily]}
               value={engineConfig}
@@ -272,7 +282,7 @@ export default function Dashboard() {
 
             <CustomDropdown
               id="turbo"
-              label={t('turboConfigLabel') || 'Turbo Configuration'}
+              label={formatLabel(t('turboConfigLabel') || 'TURBOCONFIGLABEL')}
               required
               options={TURBO_CONFIG_BY_ENGINE[engineConfig]}
               value={turboConfig}
@@ -284,7 +294,7 @@ export default function Dashboard() {
             {/* ── FEATURE 1: Engine Version dropdown ── */}
             <CustomDropdown
               id="version"
-              label={t('engineVersionLabel') || 'Engine Version / Variant'}
+              label={formatLabel(t('engineVersionLabel') || 'ENGINEVERSIONLABEL')}
               required
               options={versionOptions}
               value={engineVersion}
@@ -297,12 +307,12 @@ export default function Dashboard() {
 
           {/* ── FEATURE 1: Read-only Manufacturing Year + Release Year info panel ── */}
           {selectedVersion && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
 
               {/* Release Year — read-only info tile */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">
-                  {t('releaseYear') || 'Release Year'}
+                  {formatLabel(t('releaseYear') || 'RELEASEYEAR')}
                 </p>
                 <p className="text-sm font-bold text-gray-900">{selectedVersion.releaseYear}</p>
               </div>
@@ -311,14 +321,14 @@ export default function Dashboard() {
               <div className="sm:col-span-2 bg-cat-yellow/10 border border-cat-yellow/40 rounded-lg px-4 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">
-                    {t('manufacturingYear') || 'Manufacturing Year'}{' '}
-                    <span className="text-gray-400 normal-case tracking-normal font-normal">({t('autoPopulated') || 'auto-populated'})</span>
+                    {formatLabel(t('manufacturingYear') || 'MANUFACTURINGYEAR')}{' '}
+                    <span className="text-gray-400 normal-case tracking-normal font-normal">({formatLabel(t('autoPopulated') || 'AUTO_POPULATED')})</span>
                   </p>
                   <p className="text-sm font-bold text-gray-900">{displayMfgYear}</p>
                 </div>
                 {/* Lock icon indicates read-only */}
                 <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider bg-white border border-gray-200 px-2 py-1 rounded">
-                  {t('readOnly') || 'Read‑Only'}
+                  {formatLabel(t('readOnly') || 'READ_ONLY')}
                 </span>
               </div>
 
@@ -331,16 +341,16 @@ export default function Dashboard() {
           )}
 
           {/* Divider */}
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-gray-100 my-8" />
 
           {/* ── OPERATIONAL PARAMETERS (2×2 GRID) ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-8">
             {FIELDS.map(({ key, label, unit, placeholder }) => (
-              <div key={key}>
-                <div className="flex items-baseline justify-between mb-2">
+              <div key={key} className="space-y-2">
+                <div className="flex items-baseline justify-between">
                   <label
                     htmlFor={key}
-                    className="text-[11px] font-semibold uppercase tracking-widest text-gray-500"
+                    className="text-xs font-semibold tracking-wide text-gray-600"
                   >
                     {label} <span className="text-cat-yellow">*</span>
                   </label>
@@ -368,12 +378,12 @@ export default function Dashboard() {
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-gray-100 my-8" />
 
           {/* Submit */}
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-3 bg-cat-yellow text-cat-black font-extrabold text-[13px] uppercase tracking-[0.18em] py-4 rounded-lg shadow-sm hover:bg-yellow-400 hover:shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer mt-2"
+            className="w-full flex items-center justify-center gap-3 bg-cat-yellow text-cat-black font-extrabold text-[13px] uppercase tracking-[0.18em] py-4 rounded-lg shadow-sm hover:bg-yellow-400 hover:shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer mt-8"
           >
             <Play className="w-4 h-4 fill-current" />
             {t('startAnalysis') || 'Start Analysis'}

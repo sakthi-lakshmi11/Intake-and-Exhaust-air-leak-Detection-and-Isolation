@@ -3,12 +3,25 @@ import React from 'react';
 /**
  * EngineDiagram — Service Manual Style SVG
  * engineModel : 'C7' | 'C15'
- * prediction  : 'No Leak' | 'Intake Leak' | 'Exhaust Leak' | 'Combined Leak'
- * isGo        : boolean
+ * prediction     : 'No Leak' | 'Intake Leak' | 'Exhaust Leak' | 'Combined Leak'
+ * leakLocation   : exact reported leak path/location
+ * isGo           : boolean
  */
-export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Leak', isGo = true }) {
-  const hasIntake  = !isGo && (prediction === 'Intake Leak'  || prediction === 'Combined Leak');
-  const hasExhaust = !isGo && (prediction === 'Exhaust Leak' || prediction === 'Combined Leak');
+export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Leak', leakLocation = '', isGo = true }) {
+  const isLeak = !isGo;
+  const hasIntake = isLeak && (prediction === 'Intake Leak' || prediction === 'Combined Leak');
+  const hasExhaust = isLeak && (prediction === 'Exhaust Leak' || prediction === 'Combined Leak');
+  const normalizedLocation = leakLocation.toLowerCase();
+  const hasAirFilter = isLeak && normalizedLocation.includes('air filter');
+  const hasMafPipe = isLeak && normalizedLocation.includes('maf');
+  const hasTurboCompressor = isLeak && (normalizedLocation.includes('turbocharger compressor') || normalizedLocation.includes('compressor housing') || normalizedLocation.includes('turbo compressor') || normalizedLocation.includes('compressor inlet'));
+  const hasCac = isLeak && (normalizedLocation.includes('charge air cooler') || normalizedLocation.includes('cac'));
+  const hasIntakeManifold = isLeak && normalizedLocation.includes('intake manifold');
+  const hasExhaustManifold = isLeak && normalizedLocation.includes('exhaust manifold');
+  const hasTurbine = isLeak && (normalizedLocation.includes('turbine') || normalizedLocation.includes('turbocharger turbine'));
+  const hasExhaustOutlet = isLeak && (normalizedLocation.includes('exhaust outlet') || normalizedLocation.includes('doc') || normalizedLocation.includes('dpf') || normalizedLocation.includes('scr'));
+  const highlightIntake = hasIntake || hasAirFilter || hasMafPipe || hasTurboCompressor || hasCac || hasIntakeManifold;
+  const highlightExhaust = hasExhaust || hasExhaustManifold || hasTurbine || hasExhaustOutlet;
   const isC15      = engineModel === 'C15';
 
   /* ── Canvas ── */
@@ -94,6 +107,20 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
   const EO_W    = W - EO_X - 60;
   const EO_H    = 14;
 
+  const leakMarker = isLeak && (
+    hasAirFilter ? { x: AF_X + AF_W / 2, y: AF_Y + AF_H / 2, label: 'Air Filter Housing' } :
+    hasTurboCompressor ? { x: TC_X, y: TC_Y, label: 'Turbocharger Compressor Inlet' } :
+    hasMafPipe ? { x: AF_X + AF_W + 42, y: TC_Y, label: 'MAF Sensor / Compressor Inlet Pipe' } :
+    hasCac ? { x: CAC_X + CAC_W / 2, y: CAC_Y + CAC_H / 2, label: 'Charge Air Cooler Outlet' } :
+    hasIntakeManifold ? { x: IM_MX, y: IM_MY, label: 'Intake Manifold' } :
+    hasExhaustManifold ? { x: EM_MX + EM_W / 2, y: EM_MY, label: 'Exhaust Manifold' } :
+    hasTurbine ? { x: TN_X, y: TN_Y, label: 'Turbocharger Turbine Inlet' } :
+    hasExhaustOutlet ? { x: EO_X + EO_W / 2, y: TN_Y, label: 'Exhaust Outlet' } :
+    hasIntake ? { x: IM_MX, y: IM_MY, label: 'Intake Manifold' } :
+    hasExhaust ? { x: EM_MX + EM_W / 2, y: EM_MY, label: 'Exhaust Manifold' } :
+    null
+  );
+
   /* ── Pipe stroke widths ── */
   const PW_NORMAL = 3;
   const PW_LEAK   = 3.5;
@@ -135,7 +162,7 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
       <rect x="0" y="0" width={W} height={TITLE_H} fill={S}/>
       {/* Line 1: model + system name */}
       <text x="16" y="14" fontSize="9" fontWeight="700" fill={YL} letterSpacing="0.8">
-        CAT {engineModel} · INTAKE &amp; EXHAUST AIR SYSTEM · DIAGNOSTIC SCHEMATIC
+        CAT {engineModel} · INTAKE & EXHAUST AIR LEAK DETECTION AND ISOLATION · DIAGNOSTIC SCHEMATIC
       </text>
       {/* Line 2: document ref */}
       <text x="16" y="26" fontSize="6.5" fill="#999">
@@ -150,15 +177,15 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
       <rect
         x={AF_X + AF_W} y={TC_Y - 6}
         width={TC_X - TC_R - (AF_X + AF_W)} height={12}
-        rx="1" fill={hasIntake ? '#FECACA' : F2}
-        stroke={hasIntake ? RD : S} strokeWidth={hasIntake ? 2 : 1.4}/>
+        rx="1" fill={highlightIntake ? '#FECACA' : F2}
+        stroke={highlightIntake ? RD : S} strokeWidth={highlightIntake ? 2 : 1.4}/>
 
       {/* Turbo compressor outlet → CAC inlet (vertical down) */}
       <rect
         x={TC_X - 6} y={TC_Y + TC_R}
         width={12} height={CAC_Y - (TC_Y + TC_R)}
-        rx="1" fill={hasIntake ? '#FECACA' : F2}
-        stroke={hasIntake ? RD : S} strokeWidth={hasIntake ? 2 : 1.4}/>
+        rx="1" fill={highlightIntake ? '#FECACA' : F2}
+        stroke={highlightIntake ? RD : S} strokeWidth={highlightIntake ? 2 : 1.4}/>
 
       {/* CAC outlet → intake manifold (elbow path) */}
       <path
@@ -166,31 +193,31 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
             L${IM_X + IM_W + 6} ${CAC_Y + CAC_H/2}
             L${IM_X + IM_W + 6} ${IM_MY}`}
         fill="none"
-        stroke={hasIntake ? RD : S}
-        strokeWidth={hasIntake ? PW_LEAK : PW_NORMAL}
+        stroke={highlightIntake ? RD : S}
+        strokeWidth={highlightIntake ? PW_LEAK : PW_NORMAL}
         strokeLinejoin="round" strokeLinecap="round"/>
 
       {/* Exhaust manifold → turbine inlet (horizontal) */}
       <rect
         x={EM_X + EM_W} y={EM_MY - 6}
         width={TN_X - TN_R - (EM_X + EM_W)} height={12}
-        rx="1" fill={hasExhaust ? '#FECACA' : F2}
-        stroke={hasExhaust ? RD : S} strokeWidth={hasExhaust ? 2 : 1.4}/>
+        rx="1" fill={highlightExhaust ? '#FECACA' : F2}
+        stroke={highlightExhaust ? RD : S} strokeWidth={highlightExhaust ? 2 : 1.4}/>
       {/* Heat wrap marks on exhaust pipe */}
       {[0,1,2,3,4,5].map(i => {
         const hx = EM_X + EM_W + 12 + i * 11;
         if (hx + 7 >= TN_X - TN_R) return null;
         return <line key={i}
           x1={hx} y1={EM_MY - 8} x2={hx + 7} y2={EM_MY + 8}
-          stroke={hasExhaust ? '#F87171' : F3} strokeWidth="1.2" opacity="0.65"/>;
+          stroke={highlightExhaust ? '#F87171' : F3} strokeWidth="1.2" opacity="0.65"/>;
       })}
 
       {/* Turbine outlet → exhaust outlet pipe (horizontal) */}
       <rect
         x={TN_X + TN_R} y={TN_Y - 7}
         width={EO_W + 8} height={EO_H}
-        rx="1" fill={hasExhaust ? '#FECACA' : F2}
-        stroke={hasExhaust ? RD : S} strokeWidth={hasExhaust ? 2 : 1.4}/>
+        rx="1" fill={highlightExhaust ? '#FECACA' : F2}
+        stroke={highlightExhaust ? RD : S} strokeWidth={highlightExhaust ? 2 : 1.4}/>
       {/* Flanges */}
       {[TN_X + TN_R + 8, TN_X + TN_R + EO_W - 4].map((fx, i) => (
         <rect key={i} x={fx} y={TN_Y - 11} width="5" height={EO_H + 8}
@@ -321,9 +348,9 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
           INTAKE MANIFOLD
       ═══════════════════════════════ */}
       <rect x={IM_X} y={IM_Y} width={IM_W} height={IM_H} rx="2"
-        fill={hasIntake ? '#FEE2E2' : F2}
-        stroke={hasIntake ? RD : S}
-        strokeWidth={hasIntake ? 2.2 : 1.6}/>
+        fill={highlightIntake ? '#FEE2E2' : F2}
+        stroke={highlightIntake ? RD : S}
+        strokeWidth={highlightIntake ? 2.2 : 1.6}/>
       {/* Runner ports */}
       {[0,1,2,3,4,5].map(i => (
         <rect key={i} x={BLK_X - 3} y={IM_Y + 6 + i*((IM_H-12)/5)} width="3" height="5"
@@ -339,9 +366,9 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
           EXHAUST MANIFOLD
       ═══════════════════════════════ */}
       <rect x={EM_X} y={EM_Y} width={EM_W} height={EM_H} rx="2"
-        fill={hasExhaust ? '#FEE2E2' : F2}
-        stroke={hasExhaust ? RD : S}
-        strokeWidth={hasExhaust ? 2.2 : 1.6}/>
+        fill={highlightExhaust ? '#FEE2E2' : F2}
+        stroke={highlightExhaust ? RD : S}
+        strokeWidth={highlightExhaust ? 2.2 : 1.6}/>
       {[0,1,2,3,4,5].map(i => (
         <rect key={i} x={BLK_R} y={EM_Y + 6 + i*((EM_H-12)/5)} width="3" height="5"
           rx="0" fill={F3} stroke={S} strokeWidth="0.6"/>
@@ -403,54 +430,24 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
         stroke={DM} strokeWidth="1" strokeDasharray="5,3" markerEnd="url(#aDm)" opacity="0.4"/>
 
       {/* ═══════════════════════════════
-          INTAKE LEAK MARKER
+          EXACT LEAK LOCATION MARKER
       ═══════════════════════════════ */}
-      {hasIntake && (
+      {leakMarker && (
         <g>
-          {/* Dot on intake manifold */}
-          <circle cx={IM_MX} cy={IM_MY} r="6" fill={RD} opacity="0.9"/>
-          <circle cx={IM_MX} cy={IM_MY} r="6" fill="none" stroke={RD} strokeWidth="2" opacity="0.6">
+          <circle cx={leakMarker.x} cy={leakMarker.y} r="6" fill={RD} opacity="0.9"/>
+          <circle cx={leakMarker.x} cy={leakMarker.y} r="6" fill="none" stroke={RD} strokeWidth="2" opacity="0.6">
             <animate attributeName="r" values="8;15;8" dur="1.3s" repeatCount="indefinite"/>
             <animate attributeName="opacity" values="0.7;0.1;0.7" dur="1.3s" repeatCount="indefinite"/>
           </circle>
-          {/* Yellow dashed ring */}
-          <circle cx={IM_MX} cy={IM_MY} r="20" fill="none" stroke={YL}
+          <circle cx={leakMarker.x} cy={leakMarker.y} r="20" fill="none" stroke={YL}
             strokeWidth="2" strokeDasharray="5,3"/>
-          {/* Callout box — bottom left */}
-          <line x1={IM_MX} y1={IM_MY + 20} x2={IM_MX} y2={H - 92}
+          <line x1={leakMarker.x} y1={leakMarker.y + 20} x2={leakMarker.x} y2={H - 92}
             stroke={RD} strokeWidth="1.3" markerEnd="url(#aR)"/>
           <rect x={PAD} y={H - 90} width="148" height="46" rx="3"
             fill="#FEF2F2" stroke={RD} strokeWidth="1.3"/>
           <rect x={PAD} y={H - 90} width="148" height="11" rx="3" fill={YL}/>
           <text x={PAD + 74} y={H - 82} fontSize="7.5" fontWeight="700" fill={S} textAnchor="middle">⚠ LEAK DETECTED</text>
-          <text x={PAD + 74} y={H - 65} fontSize="8" fontWeight="700" fill={RD} textAnchor="middle">Intake Manifold Leak</text>
-          <text x={PAD + 74} y={H - 54} fontSize="6.5" fill={LB} textAnchor="middle">Charge Air Cooler Pipe /</text>
-          <text x={PAD + 74} y={H - 44} fontSize="6.5" fill={LB} textAnchor="middle">Manifold Connection</text>
-        </g>
-      )}
-
-      {/* ═══════════════════════════════
-          EXHAUST LEAK MARKER
-      ═══════════════════════════════ */}
-      {hasExhaust && (
-        <g>
-          <circle cx={EM_MX + EM_W/2} cy={EM_MY} r="6" fill={RD} opacity="0.9"/>
-          <circle cx={EM_MX + EM_W/2} cy={EM_MY} r="6" fill="none" stroke={RD} strokeWidth="2" opacity="0.6">
-            <animate attributeName="r" values="8;15;8" dur="1.3s" repeatCount="indefinite"/>
-            <animate attributeName="opacity" values="0.7;0.1;0.7" dur="1.3s" repeatCount="indefinite"/>
-          </circle>
-          <circle cx={EM_MX + EM_W/2} cy={EM_MY} r="20" fill="none" stroke={YL}
-            strokeWidth="2" strokeDasharray="5,3"/>
-          {/* Callout box — bottom right */}
-          <line x1={EM_MX + EM_W/2} y1={EM_MY + 20} x2={EM_MX + EM_W/2} y2={H - 92}
-            stroke={RD} strokeWidth="1.3" markerEnd="url(#aR)"/>
-          <rect x={W - PAD - 148} y={H - 90} width="148" height="46" rx="3"
-            fill="#FEF2F2" stroke={RD} strokeWidth="1.3"/>
-          <rect x={W - PAD - 148} y={H - 90} width="148" height="11" rx="3" fill={YL}/>
-          <text x={W - PAD - 74} y={H - 82} fontSize="7.5" fontWeight="700" fill={S} textAnchor="middle">⚠ LEAK DETECTED</text>
-          <text x={W - PAD - 74} y={H - 65} fontSize="8" fontWeight="700" fill={RD} textAnchor="middle">Exhaust Manifold Leak</text>
-          <text x={W - PAD - 74} y={H - 54} fontSize="6.5" fill={LB} textAnchor="middle">Turbine Inlet Connection /</text>
-          <text x={W - PAD - 74} y={H - 44} fontSize="6.5" fill={LB} textAnchor="middle">Manifold Joint</text>
+          <text x={PAD + 74} y={H - 65} fontSize="8" fontWeight="700" fill={RD} textAnchor="middle">{leakMarker.label}</text>
         </g>
       )}
 
@@ -475,7 +472,7 @@ export default function EngineDiagram({ engineModel = 'C7', prediction = 'No Lea
       <line x1={W-182} y1={H-20} x2={W-2} y2={H-20} stroke="#BBBBBB" strokeWidth="0.7"/>
       <line x1={W-92}  y1={H-58} x2={W-92}  y2={H-2}  stroke="#BBBBBB" strokeWidth="0.7"/>
       <text x={W-91} y={H-47} fontSize="6.5" fontWeight="700" fill={S} textAnchor="middle">INTAKE &amp; EXHAUST AIR LEAK</text>
-      <text x={W-91} y={H-37} fontSize="6.5" fontWeight="700" fill={S} textAnchor="middle">DETECTION SYSTEM</text>
+      <text x={W-91} y={H-37} fontSize="6.5" fontWeight="700" fill={S} textAnchor="middle">DETECTION AND ISOLATION SYSTEM</text>
       <text x={W-91} y={H-25} fontSize="6"   fill={DM} textAnchor="middle">{engineModel} | Diagnostic Schematic</text>
       <text x={W-91} y={H-9}  fontSize="5.5" fill={DM} textAnchor="middle">FOR SERVICE USE ONLY</text>
     </svg>

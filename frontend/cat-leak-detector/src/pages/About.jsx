@@ -83,7 +83,7 @@ export default function About() {
 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold uppercase tracking-tight text-cat-black dark:text-white leading-[0.95]">
                   <span className="block">INTAKE AND EXHAUST</span>
-                  <span className="block">AIR LEAK DETECTION</span>
+                  <span className="block">AIR LEAK DETECTION AND ISOLATION</span>
                 </h1>
 
                 <p className="mt-5 text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-200">

@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import Analysis from './pages/Analysis';
 import Results from './pages/Results';
 import Report from './pages/Report';
+import Profile from './pages/Profile';
 import About from './pages/About';
 import Support from './pages/Support';
 import Contact from './pages/Contact';
@@ -88,6 +89,14 @@ function Layout() {
             element={
               <ProtectedRoute>
                 <Report />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             } 
           />

@@ -123,7 +123,7 @@ export default function Analysis() {
               Caterpillar Diagnostics Platform
             </p>
             <h1 className="text-base font-extrabold uppercase tracking-wide text-white leading-snug">
-              Intake and Exhaust Air Leak Detection
+              Intake and Exhaust Air Leak Detection and Isolation
             </h1>
           </div>
 

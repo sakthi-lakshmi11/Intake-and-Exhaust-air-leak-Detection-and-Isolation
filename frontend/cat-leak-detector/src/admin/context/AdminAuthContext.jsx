@@ -202,11 +202,13 @@ export const AdminAuthProvider = ({ children }) => {
     // Simulate network delay
     await new Promise(r => setTimeout(r, 1200));
 
+    const normalizedIdentifier = username.toLowerCase();
+
    const user = adminUsers.find(
   u =>
     (
-      u.username?.toLowerCase() === username.toLowerCase() ||
-      u.email?.toLowerCase() === username.toLowerCase()
+      (u.email?.toLowerCase() === normalizedIdentifier ||
+      u.username?.toLowerCase() === normalizedIdentifier)
     ) &&
     u.password === password &&
     u.status === 'Active'
@@ -242,7 +244,7 @@ export const AdminAuthProvider = ({ children }) => {
     } else {
       // Failed login - increment lockout counter
       const existingUser = adminUsers.find(
-        u => u.username === username || u.email === username
+        u => u.email === username || u.username === username
       );
 
       if (existingUser && existingUser.status !== 'Active') {
@@ -278,7 +280,7 @@ export const AdminAuthProvider = ({ children }) => {
       } catch (e) { /* ignore */ }
 
       setAdminLoading(false);
-      return { success: false, message: 'Invalid username or password.' };
+      return { success: false, message: 'Invalid email or password.' };
     }
   };
 

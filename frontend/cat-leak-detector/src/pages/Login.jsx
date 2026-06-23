@@ -70,7 +70,7 @@ export default function Login() {
               <CaterpillarLogo className="h-8 text-cat-black" />
               <div className="text-center">
                 <h1 className="text-[15px] font-extrabold uppercase tracking-tight text-gray-900 leading-tight">
-                  {t('loginTitle') || 'Intake & Exhaust Air Leak Detection'}
+                  {t('loginTitle') || 'Intake & Exhaust Air Leak Detection and Isolation'}
                 </h1>
                 <p className="mt-1 text-[11px] text-gray-400 font-normal tracking-wide">
                   {t('signInToAccount') || 'Sign in to your account'}
@@ -91,16 +91,17 @@ export default function Login() {
                   htmlFor="login-email"
                   className="block text-[11px] font-semibold text-gray-500 uppercase tracking-widest mb-1.5"
                 >
-                  {t('username') || 'Username'}
+                  {t('username') || 'Email'}
                 </label>
                 <input
                   id="login-email"
-                  type="email"
+                  type="text"
+                  inputMode="email"
                   required
                   autoComplete="email"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={t('enterUsername') || 'Enter username or email'}
+                  placeholder={t('enterUsername') || 'Enter email or username'}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm font-normal placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cat-yellow/50 focus:border-cat-yellow transition-all duration-200"
                 />
               </div>

@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/AdminLayout';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import {
-  Search, Plus, Edit, Trash2, X, CheckCircle, UserCheck,
-  UserX, Key, Eye, AlertCircle, ChevronDown
+  Search, Plus, Edit, Trash2, X,
+  Eye, AlertCircle, ChevronDown
 } from 'lucide-react';
+import { OPERATOR_USERS_KEY, getUserStatus, relativeTime } from '../../services/userStatus';
 
 const FONT = { fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif" };
 
-const USERS_STORAGE_KEY = 'cat_mock_users';
+const USERS_STORAGE_KEY = OPERATOR_USERS_KEY;
 
 // TODO: Replace with /api/users for admin user management
 const getUsers = () => {
@@ -23,10 +24,10 @@ const saveUsers = (users) => {
 };
 
 const formatDate = (dateStr) => {
-  if (!dateStr) return '—';
+  if (!dateStr) return 'Never';
   try {
     return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch { return '—'; }
+  } catch { return 'Never'; }
 };
 
 // TODO: Replace with /api/users (GET, POST, PUT, DELETE)
@@ -41,13 +42,17 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
     username: '', email: '', fullName: '', password: '', role: 'Operator',
-    employeeId: '', branch: '', department: ''
+    employeeId: '', department: ''
   });
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    setUsers(getUsers());
+    const loaded = getUsers().map(user => ({ ...user, branch: undefined }));
+    setUsers(loaded);
+    const refresh = () => setUsers(getUsers().map(user => ({ ...user, branch: undefined })));
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
   }, []);
 
   const filtered = users.filter(u => {
@@ -56,7 +61,7 @@ export default function UserManagement() {
       u.username?.toLowerCase().includes(search.toLowerCase()) ||
       u.email?.toLowerCase().includes(search.toLowerCase());
     const matchRole = filterRole === 'All' || u.role === filterRole;
-    const matchStatus = filterStatus === 'All' || (u.status || 'Active') === filterStatus;
+    const matchStatus = filterStatus === 'All' || getUserStatus(u) === filterStatus;
     return matchSearch && matchRole && matchStatus;
   });
 
@@ -73,8 +78,9 @@ export default function UserManagement() {
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
 
     const now = new Date().toISOString();
-    const newUser = { ...formData, status: 'Active', createdAt: now, lastActivity: now };
-    const updated = [...users, newUser];
+    const newUser = { ...formData, role: 'Operator', department: formData.department || '', status: 'Active', createdAt: now, lastActivity: now };
+    delete newUser.branch;
+    const updated = [...users, { ...newUser, branch: undefined }];
     setUsers(updated);
     saveUsers(updated);
     addAuditLog(currentAdmin, 'Create User', `Created user: ${formData.username}`);
@@ -93,7 +99,7 @@ export default function UserManagement() {
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
 
     const updated = users.map(u =>
-      u.username === selectedUser.username ? { ...u, ...formData, password: u.password } : u
+      u.username === selectedUser.username ? { ...u, ...formData, password: u.password, branch: undefined } : u
     );
     setUsers(updated);
     saveUsers(updated);
@@ -110,18 +116,8 @@ export default function UserManagement() {
     }
   };
 
-  const handleToggleStatus = (user) => {
-    const newStatus = (user.status || 'Active') === 'Active' ? 'Inactive' : 'Active';
-    const updated = users.map(u =>
-      u.username === user.username ? { ...u, status: newStatus } : u
-    );
-    setUsers(updated);
-    saveUsers(updated);
-    addAuditLog(currentAdmin, `${newStatus} User`, `${newStatus} user: ${user.username}`);
-  };
-
   const openAddModal = () => {
-    setFormData({ username: '', email: '', fullName: '', password: '', role: 'Operator', employeeId: '', branch: '', department: '' });
+    setFormData({ username: '', email: '', fullName: '', password: '', role: 'Operator', employeeId: '', department: '' });
     setFormErrors({});
     setSelectedUser(null);
     setShowModal('add');
@@ -219,26 +215,19 @@ export default function UserManagement() {
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-                        (user.status || 'Active') === 'Active' ? 'text-green-600' : 'text-red-600'
+                        getUserStatus(user) === 'Active' ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        <span className={`w-2 h-2 rounded-full ${(user.status || 'Active') === 'Active' ? 'bg-green-500' : 'bg-red-500'}`} />
-                        {user.status || 'Active'}
+                        <span className={`w-2 h-2 rounded-full ${getUserStatus(user) === 'Active' ? 'bg-green-500' : 'bg-red-500'}`} />
+                        {getUserStatus(user)}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-xs text-gray-500">{formatDate(user.createdAt)}</td>
-                    <td className="px-4 py-3.5 text-xs text-gray-500">{formatDate(user.lastActivity)}</td>
+                    <td className="px-4 py-3.5 text-xs text-gray-500">{relativeTime(user.lastActivity || user.lastLogin)}</td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => openEditModal(user)}
                           className="p-1.5 rounded text-gray-500 hover:text-[#FFCD11] hover:bg-[#FFCD11]/10 transition-colors" title="Edit">
                           <Edit className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => handleToggleStatus(user)}
-                          className={`p-1.5 rounded transition-colors ${
-                            (user.status || 'Active') === 'Active' ? 'text-gray-500 hover:text-orange-600 hover:bg-orange-100/50'
-                            : 'text-gray-500 hover:text-green-600 hover:bg-green-100/50'
-                          }`} title="Toggle">
-                          {(user.status || 'Active') === 'Active' ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                         </button>
                         <button onClick={() => handleDeleteUser(user)}
                           className="p-1.5 rounded text-gray-500 hover:text-red-600 hover:bg-red-100/50 transition-colors" title="Delete">
@@ -308,11 +297,6 @@ export default function UserManagement() {
               <div>
                 <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Employee ID</label>
                 <input value={formData.employeeId} onChange={e => setFormData(p => ({ ...p, employeeId: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFCD11]/50" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Branch</label>
-                <input value={formData.branch} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFCD11]/50" />
               </div>
             </div>

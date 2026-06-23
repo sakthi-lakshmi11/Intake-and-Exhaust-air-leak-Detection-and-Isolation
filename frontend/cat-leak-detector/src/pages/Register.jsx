@@ -81,7 +81,7 @@ export default function Register() {
                   Create Account
                 </h1>
                 <p className="mt-1 text-[11px] text-gray-400 font-normal tracking-wide">
-                  Intake &amp; Exhaust Air Leak Detection
+                  Intake &amp; Exhaust Air Leak Detection and Isolation
                 </p>
               </div>
             </div>

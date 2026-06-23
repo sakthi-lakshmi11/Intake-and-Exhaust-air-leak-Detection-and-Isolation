@@ -16,14 +16,21 @@ const translations = {
 
     // Login Page
     fillAllFields: 'Please fill in all fields.',
-    enterUsername: 'Enter username or email',
+    enterUsername: 'Enter email',
     signInToAccount: 'Sign in to your account',
-    loginTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    loginTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
 
     // Dashboard Page
     dashboardBadge: 'NovaCrafters Diagnostics Platform',
     dashboardSubtitle: 'Engine Configuration and Operating Parameters',
     engineFamilyLabel: 'Engine Family',
+    engineConfigLabel: 'Engine Configuration',
+    turboConfigLabel: 'Turbo Configuration',
+    engineVersionLabel: 'Engine Version',
+    releaseYear: 'Release Year',
+    manufacturingYear: 'Manufacturing Year',
+    autoPopulated: 'Auto-populated',
+    readOnly: 'Read-only',
 
     // Validation
     sensorInputRequired: 'is required.',
@@ -31,7 +38,7 @@ const translations = {
 
     // Welcome Page badges & updated terminology
     heroBadge: 'Industrial Diagnostic Platform',
-    heroTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    heroTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     heroSubheading: 'Condition monitoring and leak detection for turbocharged diesel engines using industrial diagnostics.',
     heroDesc: 'Monitor engine condition, detect intake and exhaust air leaks, and receive maintenance assessment reports.',
     getStarted: 'Get Started',
@@ -47,7 +54,7 @@ const translations = {
     // About page
     aboutBadge: 'About This Platform',
     aboutUs: 'About Us',
-    aboutUsSubtitle: 'Intake and Exhaust Air Leak Detection — Industrial Diagnostic Platform.',
+    aboutUsSubtitle: 'Intake and Exhaust Air Leak Detection and Isolation — Industrial Diagnostic Platform.',
     objectivesTitle: 'Project Objectives',
     objectivesContent: [
       'Detect intake air leaks in turbocharged diesel engines',
@@ -58,12 +65,12 @@ const translations = {
     ],
 
     // Login Page
-    loginTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    loginTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     loginSubtitle: 'Industrial Engine Diagnostics System',
     operatorLogin: 'Operator Login',
     adminLogin: 'Administrator Login',
     loginType: 'Login Type',
-    username: 'Username',
+    username: 'Email',
     employeeId: 'Employee ID',
     password: 'Password',
     rememberMe: 'Remember Me',
@@ -103,7 +110,7 @@ const translations = {
     secureSuccess: 'User registered in mock database.',
 
     // Dashboard Page
-    dashboardTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    dashboardTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     welcomeBack: 'Welcome Back',
     currentSession: 'Active Diagnostics Session',
     engineStatus: 'Engine Status',
@@ -173,11 +180,11 @@ const translations = {
     technicianSig: 'Technician Signature',
     supervisorSig: 'Supervisor Signature',
     dateOfAnalysis: 'Analysis Timestamp',
-    systemDiagnosticLog: 'INTAKE AND EXHAUST AIR LEAK DETECTION — Diagnostic Log Sheet',
+    systemDiagnosticLog: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION — Diagnostic Log Sheet',
 
     // Support page — new keys
     supportBadge: 'Technical Support Center',
-    supportTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    supportTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     supportSubtitle: 'Technical documentation, troubleshooting, and support resources.',
     userGuideTitle: 'User Guide',
     userGuideText: 'This platform supports condition monitoring and leak detection for Caterpillar turbocharged diesel engines. Select your engine model, enter operating parameters, and run the diagnostic analysis to receive a GO or NON-GO assessment.',
@@ -209,7 +216,7 @@ const translations = {
     errP015Action: 'Inspect intercooler intake plumbing and re-torque clamp brackets.',
 
     // Contact Page
-    contactTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    contactTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     contactSubtitle: 'Get in touch with global technical teams',
     name: 'Full Name',
     message: 'Message Detail',
@@ -221,9 +228,9 @@ const translations = {
 
     // About Us Carousel
     aboutUs: 'About Us',
-    aboutUsSubtitle: 'Learn more about our Intake and Exhaust Air Leak Detection Platform.',
+    aboutUsSubtitle: 'Learn more about our Intake and Exhaust Air Leak Detection and Isolation Platform.',
     projectOverview: 'Project Overview',
-    projectOverviewContent: 'The Intake and Exhaust Air Leak Detection platform identifies air leakage conditions in turbocharged diesel engines and provides maintenance teams with structured diagnostic output including GO/NON-GO assessment and service recommendations.',
+    projectOverviewContent: 'The Intake and Exhaust Air Leak Detection and Isolation platform identifies air leakage conditions in turbocharged diesel engines and provides maintenance teams with structured diagnostic output including GO/NON-GO assessment and service recommendations.',
     problemStatement: 'Problem Statement',
     problemStatementContent: 'Undetected intake and exhaust air leaks reduce engine efficiency, increase fuel consumption, impair turbocharger performance, raise emissions, and cause unexpected equipment downtime.',
     ourSolution: 'Our Solution',
@@ -254,7 +261,7 @@ const translations = {
     navMyReports: 'என் அறிக்கைகள்',
 
     // Welcome Page
-    heroTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    heroTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     heroSubheading: 'மெஷின் லேர்னிங் மற்றும் தொழில்துறை கண்டறிதல்களைப் பயன்படுத்தி நிகழ்நேர உறிஞ்சுதல் மற்றும் வெளியேற்ற கசிவைக் கண்டறிதல்.',
     heroDesc: 'என்ஜின் ஆரோக்கியத்தை கண்காணிக்கவும், செயலிழப்புகளை கணிக்கவும், கசிவுகளை கண்டறியவும் மற்றும் பராமரிப்பு பரிந்துரைகளை பெறவும்.',
     getStarted: 'தொடங்குங்கள்',
@@ -268,12 +275,12 @@ const translations = {
     feature3Desc: 'தொழில்நுட்ப சவால்களுக்காக பிரத்யேகமாக வடிவமைக்கப்பட்ட உயர்தர தொழில்துறை இடைமுகம்.',
 
     // Login Page
-    loginTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    loginTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     loginSubtitle: 'Industrial Engine Diagnostics System',
     operatorLogin: 'இயக்குபவர் உள்நுழைவு',
     adminLogin: 'நிர்வாகி உள்நுழைவு',
     loginType: 'உள்நுழைவு வகை',
-    username: 'பயனர் பெயர்',
+    username: 'மின்னஞ்சல்',
     employeeId: 'பணியாளர் ஐடி',
     password: 'கடவுச்சொல்',
     rememberMe: 'என்னை நினைவில் கொள்',
@@ -320,7 +327,7 @@ const translations = {
     secureSuccess: 'பயனர் உருவகப்படுத்தப்பட்ட தரவுத்தளத்தில் பதிவு செய்யப்பட்டுள்ளார்.',
 
     // Dashboard Page
-    dashboardTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    dashboardTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     welcomeBack: 'மீண்டும் வருக',
     currentSession: 'செயலில் உள்ள கண்டறியும் அமர்வு',
     engineStatus: 'என்ஜின் நிலை',
@@ -390,10 +397,10 @@ const translations = {
     technicianSig: 'தொழில்நுட்ப வல்லுநர் கையொப்பம்',
     supervisorSig: 'மேற்பார்வையாளர் கையொப்பம்',
     dateOfAnalysis: 'பகுப்பாய்வு நேரம்',
-    systemDiagnosticLog: 'INTAKE AND EXHAUST AIR LEAK DETECTION — Diagnostic Log Sheet',
+    systemDiagnosticLog: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION — Diagnostic Log Sheet',
 
     // Support Page
-    supportTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    supportTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     userManual: 'பயனர் கையேடு & வழிகாட்டிகள்',
     howToUse: 'கணினியை எவ்வாறு இயக்குவது',
     howToUseText: 'உங்கள் கேட்டர்பில்லர் கண்காணிப்பு முனையத்திலிருந்து டெலிமெட்ரி மதிப்புகளை உள்ளிட்டு, AI பகுப்பாய்வை இயக்க "AI பகுப்பாய்வைத் தொடங்கு" என்பதை அழுத்தவும்.',
@@ -409,7 +416,7 @@ const translations = {
     contactSupportBtn: 'அவசர ஆதரவு டிக்கெட்டைத் திற',
 
     // Contact Page
-    contactTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    contactTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     contactSubtitle: 'உலகளாவிய தொழில்நுட்பக் குழுக்களுடன் தொடர்பு கொள்ளுங்கள்',
     name: 'முழு பெயர்',
     message: 'செய்தி விவரம்',
@@ -438,7 +445,7 @@ const translations = {
 
     // Login Page
     fillAllFields: 'அனைத்து புலங்களையும் நிரப்பவும்.',
-    enterUsername: 'பயனர் பெயர் அல்லது மின்னஞ்சலை உள்ளிடவும்',
+    enterUsername: 'மின்னஞ்சலை உள்ளிடவும்',
     signInToAccount: 'உங்கள் கணக்கில் உள்நுழையவும்',
   },
   hi: {
@@ -459,7 +466,7 @@ const translations = {
     navMyReports: 'मेरी रिपोर्ट्स',
 
     // Welcome Page
-    heroTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    heroTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     heroSubheading: 'मशीन लर्निंग और औद्योगिक निदान का उपयोग करके वास्तविक समय में सेवन और निकास रिसाव का पता लगाना।',
     heroDesc: 'इंजन स्वास्थ्य की निगरानी करें, विफलताओं की भविष्यवाणी करें, लीक का पता लगाएं, और रखरखाव की सिफारिशें प्राप्त करें।',
     getStarted: 'शुरू करें',
@@ -473,12 +480,12 @@ const translations = {
     feature3Desc: 'विशेष रूप से तकनीकी चुनौती संचालन के लिए स्टाइल किया गया मजबूत औद्योगिक इंटरफ़ेस।',
 
     // Login Page
-    loginTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    loginTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     loginSubtitle: 'Industrial Engine Diagnostics System',
     operatorLogin: 'ऑपरेटर लॉगिन',
     adminLogin: 'प्रशासक लॉगिन',
     loginType: 'लॉगिन प्रकार',
-    username: 'उपयोगकर्ता नाम',
+    username: 'ईमेल',
     employeeId: 'कर्मचारी आईडी',
     password: 'पासवर्ड',
     rememberMe: 'मुझे याद रखें',
@@ -525,7 +532,7 @@ const translations = {
     secureSuccess: 'उपयोगकर्ता सिम्युलेटेड डेटाबेस में पंजीकृत हो गया है।',
 
     // Dashboard Page
-    dashboardTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    dashboardTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     welcomeBack: 'स्वागत है',
     currentSession: 'सक्रिय डायग्नोस्टिक सत्र',
     engineStatus: 'इंजन की स्थिति',
@@ -595,10 +602,10 @@ const translations = {
     technicianSig: 'तकनीशियन हस्ताक्षर',
     supervisorSig: 'पर्यवेक्षक हस्ताक्षर',
     dateOfAnalysis: 'विश्लेषण का समय',
-    systemDiagnosticLog: 'INTAKE AND EXHAUST AIR LEAK DETECTION — Diagnostic Log Sheet',
+    systemDiagnosticLog: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION — Diagnostic Log Sheet',
 
     // Support Page
-    supportTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    supportTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     userManual: 'उपयोगकर्ता मैनुअल और गाइड',
     howToUse: 'सिस्टम का संचालन कैसे करें',
     howToUseText: 'अपने कैटरपिलर मॉनिटरिंग टर्मिनल से टेलीमेट्री मान दर्ज करें और विश्लेषण चलाने के लिए "AI विश्लेषण शुरू करें" दबाएं।',
@@ -614,7 +621,7 @@ const translations = {
     contactSupportBtn: 'आपातकालीन टिकट खोलें',
 
     // Contact Page
-    contactTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION',
+    contactTitle: 'INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION',
     contactSubtitle: 'वैश्विक तकनीकी टीमों के संपर्क में रहें',
     name: 'पूरा नाम',
     message: 'संदेश विवरण',
@@ -643,7 +650,7 @@ const translations = {
 
     // Login Page
     fillAllFields: 'कृपया सभी फ़ील्ड भरें।',
-    enterUsername: 'उपयोगकर्ता नाम या ईमेल दर्ज करें',
+    enterUsername: 'ईमेल दर्ज करें',
     signInToAccount: 'अपने अकाउंट में साइन इन करें',
   }
 };

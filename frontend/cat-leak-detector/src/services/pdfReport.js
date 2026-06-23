@@ -1,124 +1,254 @@
 import { jsPDF } from 'jspdf';
 import { getLeakDisplay } from './leakDisplay';
+import { getDetectedPath } from './leakPath';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    COLOUR PALETTE  — Caterpillar yellow / black / white
 ═══════════════════════════════════════════════════════════════════════════ */
-const CAT_YELLOW  = [255, 205, 17];   // #FFCD11  primary brand accent
-const CAT_BLACK   = [17,  17,  17];   // #111111  primary dark
-const NAVY        = [17,  17,  17];   // same as black — accent bars use yellow instead
-const GRAY_DARK   = [60,  60,  60];
-const GRAY_MID    = [120, 120, 120];
-const GRAY_LIGHT  = [220, 220, 220];
-const GRAY_BG     = [252, 248, 220];  // very light yellow tint for alt rows
-const WHITE       = [255, 255, 255];
-const GREEN       = [22,  163, 74];
+const CAT_YELLOW = [255, 205, 17];   // #FFCD11  primary brand accent
+const CAT_BLACK = [17, 17, 17];   // #111111  primary dark
+const GRAY_DARK = [60, 60, 60];
+const GRAY_MID = [120, 120, 120];
+const GRAY_LIGHT = [220, 220, 220];
+const GRAY_BG = [252, 248, 220];  // very light yellow tint for alt rows
+const WHITE = [255, 255, 255];
+const GREEN = [22, 163, 74];
 const GREEN_LIGHT = [220, 252, 231];
-const ORANGE      = [234, 88,  12];
-const ORANGE_LT   = [254, 215, 170];
-const RED         = [220, 38,  38];
-const RED_LIGHT   = [254, 202, 202];
+const ORANGE = [234, 88, 12];
+const RED = [220, 38, 38];
+const RED_LIGHT = [254, 202, 202];
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PAGE GEOMETRY
 ═══════════════════════════════════════════════════════════════════════════ */
-const PAGE_W    = 210;
-const PAGE_H    = 297;
-const MARGIN    = 14;        
+const PAGE_W = 210;
+const PAGE_H = 297;
+const MARGIN = 14;
 const CONTENT_W = PAGE_W - MARGIN * 2;
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LOW-LEVEL HELPERS
 ═══════════════════════════════════════════════════════════════════════════ */
-const sf  = (doc, rgb) => doc.setFillColor(...rgb);
-const sd  = (doc, rgb) => doc.setDrawColor(...rgb);
-const st  = (doc, rgb) => doc.setTextColor(...rgb);
+const sf = (doc, rgb) => doc.setFillColor(...rgb);
+const sd = (doc, rgb) => doc.setDrawColor(...rgb);
+const st = (doc, rgb) => doc.setTextColor(...rgb);
 
-function hRule(doc, y, color = GRAY_LIGHT, w = 0.3) {
-  sd(doc, color); doc.setLineWidth(w);
-  doc.line(MARGIN, y, PAGE_W - MARGIN, y);
+function cleanValue(value, fallback = 'Not provided in input') {
+  if (value === undefined || value === null) return fallback;
+  const text = String(value).trim();
+  return text && !['-', '—', 'N/A', 'NA', 'None', 'null', 'undefined'].includes(text)
+    ? text
+    : fallback;
+}
+
+function formatNumber(value) {
+  if (value === undefined || value === null || value === '') return '—';
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) return String(value);
+  return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function labelForValue(value, map) {
+  if (!value) return 'Not provided in input';
+  const found = map.find((item) => item.value === value || item.label === value);
+  return found?.label || value;
+}
+
+function firstValue(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== '');
+}
+
+function drawCell(doc, x, y, w, h, shade, borderColor = GRAY_LIGHT) {
+  if (shade) { sf(doc, GRAY_BG); doc.rect(x, y, w, h, 'F'); }
+  sd(doc, borderColor); doc.setLineWidth(0.2);
+  doc.rect(x, y, w, h, 'S');
+}
+
+function drawWrappedCellText(doc, text, x, y, w, h, options = {}) {
+  const {
+    color = GRAY_DARK,
+    font = 'helvetica',
+    style = 'normal',
+    size = 7.2,
+    align = 'left',
+    lineHeight = 3.4,
+    padX = 2,
+  } = options;
+  const lines = doc.splitTextToSize(String(text), Math.max(w - padX * 2, 8));
+  const textHeight = Math.min(lines.length * lineHeight, h - 2);
+  const startY = align === 'middle' ? y + (h - textHeight) / 2 + 2.5 : y + 3;
+  st(doc, color);
+  doc.setFont(font, style);
+  doc.setFontSize(size);
+  doc.text(lines, x + padX, startY);
+}
+
+function sensorValueFrom(inputs, report, keys) {
+  const sourceObjects = [inputs || {}, report || {}];
+  for (const source of sourceObjects) {
+    for (const key of keys) {
+      const value = source[key];
+      if (value !== undefined && value !== null && value !== '') return value;
+    }
+  }
+  return '—';
+}
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function resolveFaultSensor(report, prediction, leakLocation) {
+  const raw = firstValue(
+    report?.faultSourceSensor,
+    report?.faultSensor,
+    report?.sourceSensor,
+    report?.problematicSensor,
+    report?.detectedSensor,
+    report?.sensorFault,
+    report?.sensorStatus?.faultSource,
+  );
+
+  const leakText = normalizeText([
+    raw,
+    prediction,
+    leakLocation,
+    report?.detectedPath,
+    report?.leakPath,
+    report?.leak_section,
+  ].filter(Boolean).join(' '));
+
+  if (!leakText) return '';
+  if (leakText.includes('maf')) return 'MAF Sensor';
+  if (leakText.includes('map') || leakText.includes('intake manifold')) return 'MAP Sensor';
+  if (leakText.includes('boost') || leakText.includes('compressor') || leakText.includes('charge air cooler')) return 'Boost Pressure Sensor';
+  if (leakText.includes('intake air temperature') || leakText.includes('iat')) return 'Intake Air Temperature Sensor';
+  if (leakText.includes('exhaust pressure') || leakText.includes('exhaust back pressure') || leakText.includes('ebp')) return 'Exhaust Pressure Sensor';
+  if (leakText.includes('exhaust temperature') || leakText.includes('exhaust gas temperature') || leakText.includes('egt')) return 'Exhaust Temperature Sensor';
+  if (leakText.includes('turbo speed') || leakText.includes('turbo rpm')) return 'Turbo Speed Sensor';
+  if (leakText.includes('ambient') || leakText.includes('baro')) return 'Ambient Pressure Sensor';
+  if (leakText.includes('turbo') || leakText.includes('turbine')) return 'Turbo Speed Sensor';
+  return '';
+}
+
+function resolveSensorStatus(sensorName, report, faultSensor, isGo) {
+  const statuses = report?.sensorStatuses || report?.sensorStatus || {};
+  const rawStatus = statuses[sensorName] || statuses[sensorName.replace(/ Sensor$/, '')] || statuses[sensorName.toLowerCase()];
+  const status = String(rawStatus || '').toUpperCase();
+  if (['ABNORMAL', 'WARNING', 'FAULT', 'LEAK'].includes(status)) return status === 'FAULT' ? 'ABNORMAL' : status;
+  if (faultSensor === sensorName) return isGo ? 'WARNING' : 'ABNORMAL';
+  return 'NORMAL';
+}
+
+function sensorUnitFor(sensorName) {
+  if (sensorName.includes('Temperature')) return '°C';
+  if (sensorName.includes('Turbo Speed')) return '%';
+  if (sensorName.includes('MAF')) return 'kg/h';
+  return 'bar';
 }
 
 /* ── Section bar — CAT yellow accent on black ── */
 function sectionBar(doc, y, num, label) {
-  // Black fill bar
-  sf(doc, CAT_BLACK); doc.rect(MARGIN, y, CONTENT_W, 8, 'F');
-  // Left yellow accent stripe
-  sf(doc, CAT_YELLOW); doc.rect(MARGIN, y, 3, 8, 'F');
-  // Section number in yellow
+  const labelText = label.toUpperCase();
+  st(doc, WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  const lines = doc.splitTextToSize(labelText, CONTENT_W - 26);
+  const barH = Math.max(9, 4 + lines.length * 3.8);
+
+  sf(doc, CAT_BLACK); doc.rect(MARGIN, y, CONTENT_W, barH, 'F');
+  sf(doc, CAT_YELLOW); doc.rect(MARGIN, y, 3, barH, 'F');
+
   st(doc, CAT_YELLOW); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
-  doc.text(num, MARGIN + 7, y + 5.5);
-  // Section label in white
-  st(doc, WHITE); doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
-  doc.text(label.toUpperCase(), MARGIN + 19, y + 5.5);
-  return y + 8;
+  doc.text(num, MARGIN + 7, y + barH / 2 + 2.5);
+
+  st(doc, WHITE); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
+  lines.forEach((line, i) => doc.text(line, MARGIN + 19, y + 6.3 + i * 3.8));
+  return y + barH;
 }
 
-/* ── Alternating-row key-value table row (2-col) ── */
+/* ── Key-value row with wrapped values ── */
 function kvRow(doc, y, label, value, shade, valueColor) {
-  const ROW_H = 7;
-  if (shade) { sf(doc, GRAY_BG); doc.rect(MARGIN, y, CONTENT_W, ROW_H, 'F'); }
-  sd(doc, GRAY_LIGHT); doc.setLineWidth(0.2);
-  doc.rect(MARGIN, y, CONTENT_W, ROW_H, 'S');
-  st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-  doc.text(String(label), MARGIN + 3, y + 4.8);
-  st(doc, valueColor || CAT_BLACK); doc.setFont('helvetica', 'bold');
-  doc.text(String(value), MARGIN + 90, y + 4.8);
-  return y + ROW_H;
-}
-
-/* ── 5-column sensor table row (name | value | unit | range | status) ── */
-function sensorRow(doc, y, cols, shade) {
-  const ROW_H  = 7;
-  const widths = [52, 28, 22, 40, 30];   // column widths, total = CONTENT_W ≈ 182
-  const xs     = widths.reduce((acc, w, i) => { acc.push((acc[i - 1] || MARGIN) + (i ? widths[i - 1] : 0)); return acc; }, []);
-  xs[0] = MARGIN;
-  for (let i = 1; i < widths.length; i++) xs[i] = xs[i - 1] + widths[i - 1];
-
-  if (shade) { sf(doc, GRAY_BG); doc.rect(MARGIN, y, CONTENT_W, ROW_H, 'F'); }
-  sd(doc, GRAY_LIGHT); doc.setLineWidth(0.2);
-  doc.rect(MARGIN, y, CONTENT_W, ROW_H, 'S');
-
-  const statusColors = { NORMAL: GREEN, WARNING: ORANGE, ABNORMAL: RED };
-  cols.forEach((text, i) => {
-    const isStatus = i === 4;
-    const color = isStatus ? (statusColors[text] || GRAY_DARK) : GRAY_DARK;
-    st(doc, color);
-    doc.setFont('helvetica', isStatus ? 'bold' : 'normal');
-    doc.setFontSize(7.5);
-    doc.text(String(text), xs[i] + 2, y + 4.8);
+  const labelW = 68;
+  const valueW = CONTENT_W - labelW;
+  const lines = doc.splitTextToSize(String(value), valueW - 6);
+  const ROW_H = Math.max(8, 3.8 + lines.length * 3.6);
+  drawCell(doc, MARGIN, y, CONTENT_W, ROW_H, shade);
+  drawWrappedCellText(doc, label, MARGIN, y, labelW, ROW_H, {
+    color: GRAY_DARK,
+    style: 'normal',
+    size: 7.2,
+  });
+  drawWrappedCellText(doc, value, MARGIN + labelW, y, valueW, ROW_H, {
+    color: valueColor || CAT_BLACK,
+    style: 'bold',
+    size: 7.2,
+    align: 'middle',
   });
   return y + ROW_H;
 }
 
-/* ── Column header row (shared between sensor + nominal tables) ── */
+/* ── 4-column wrapped sensor table row ── */
+function sensorRow(doc, y, cols, shade, widths) {
+  const xs = widths.reduce((acc, w, i) => {
+    acc.push((acc[i - 1] || MARGIN) + (i ? widths[i - 1] : 0));
+    return acc;
+  }, []);
+  xs[0] = MARGIN;
+  for (let i = 1; i < widths.length; i++) xs[i] = xs[i - 1] + widths[i - 1];
+
+  const lineSets = cols.map((text, i) => doc.splitTextToSize(String(text), Math.max(widths[i] - 4, 8)));
+  const ROW_H = Math.max(8, 3 + Math.max(...lineSets.map((lines) => lines.length * 3.4)));
+
+  drawCell(doc, MARGIN, y, CONTENT_W, ROW_H, shade);
+
+  lineSets.forEach((lines, i) => {
+    const isStatus = i === 3;
+    const status = lines[0]?.toUpperCase();
+    const color = isStatus
+      ? status === 'ABNORMAL' || status === 'WARNING' ? RED : GREEN
+      : GRAY_DARK;
+    drawWrappedCellText(doc, lines.join('\n'), xs[i], y, widths[i], ROW_H, {
+      color,
+      style: isStatus ? 'bold' : 'normal',
+      size: isStatus ? 7.2 : 6.8,
+      align: 'middle',
+    });
+  });
+  return y + ROW_H;
+}
+
+/* ── Column header row with wrapped labels ── */
 function tableHeader(doc, y, headers, widths) {
-  const ROW_H = 7;
-  // Yellow fill header — CAT brand
+  const ROW_H = 8;
   sf(doc, CAT_YELLOW); sd(doc, CAT_BLACK);
   doc.setLineWidth(0.3);
   doc.rect(MARGIN, y, CONTENT_W, ROW_H, 'FD');
   let x = MARGIN;
-  headers.forEach((h) => {
-    st(doc, CAT_BLACK); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
-    doc.text(h.toUpperCase(), x + 2, y + 4.8);
-    x += widths[headers.indexOf(h)];
+  headers.forEach((h, i) => {
+    drawWrappedCellText(doc, h, x, y, widths[i], ROW_H, {
+      color: CAT_BLACK,
+      style: 'bold',
+      size: 7.2,
+      align: 'middle',
+    });
+    x += widths[i];
   });
   return y + ROW_H;
 }
 
 /* ── Status verdict box (GO / NON-GO) ── */
 function verdictBox(doc, y, isGo, leakLocation) {
-  const bg     = isGo ? GREEN_LIGHT : RED_LIGHT;
+  const bg = isGo ? GREEN_LIGHT : RED_LIGHT;
   const border = isGo ? GREEN : RED;
-  const label  = isGo ? 'GO — SYSTEM CLEAR' : 'NON-GO — LEAK DETECTED';
+  const label = isGo ? 'GO — SYSTEM CLEAR' : 'NON-GO — LEAK DETECTED';
   const detail = isGo
     ? 'No significant intake or exhaust air leak detected. All parameters within acceptable operating limits.'
     : `Potential air leak detected in engine air pathway. Immediate maintenance action required. Location: ${leakLocation}`;
 
   sf(doc, bg); sd(doc, border); doc.setLineWidth(1);
-  doc.roundedRect(MARGIN, y, CONTENT_W, 22, 2, 2, 'FD');
+  doc.roundedRect(MARGIN, y, CONTENT_W, 24, 2, 2, 'FD');
 
   st(doc, border); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
   doc.text(label, MARGIN + 5, y + 9);
@@ -126,50 +256,43 @@ function verdictBox(doc, y, isGo, leakLocation) {
   st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
   const lines = doc.splitTextToSize(detail, CONTENT_W - 10);
   doc.text(lines, MARGIN + 5, y + 16);
-  return y + 26;
+  return y + 28;
 }
 
-/* ── Checkmark bullet line ── */
+/* ── Bullet line ── */
 function checkLine(doc, y, text, color) {
   const c = color || GREEN;
   sf(doc, c); doc.circle(MARGIN + 3, y + 1.8, 1.5, 'F');
-  st(doc, WHITE); doc.setFont('helvetica', 'bold'); doc.setFontSize(5.5);
-  doc.text('✓', MARGIN + 1.5, y + 2.5);
-  st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+  st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(8.2);
   const lines = doc.splitTextToSize(text, CONTENT_W - 12);
   doc.text(lines, MARGIN + 8, y + 3);
-  return y + lines.length * 5.5 + 1.5;
+  return y + lines.length * 4.4 + 2;
 }
 
 /* ── NovaCrafters logo — compact CAT-style: black plate, yellow triangle, white wordmark ── */
 function drawNCLogo(doc, x, y) {
-  // Compact black plate: 44mm wide × 10mm tall
   sf(doc, CAT_BLACK); sd(doc, CAT_BLACK); doc.setLineWidth(0);
   doc.roundedRect(x, y, 44, 10, 1, 1, 'F');
-  // Small yellow triangle (CAT-inspired, proportionally scaled)
+
   sf(doc, CAT_YELLOW);
-  doc.triangle(x + 2, y + 9, x + 7, y + 9, x + 4.5, y + 2, 'F');
-  // Thin yellow underline bar
+  doc.lines([[2.5, -7], [5, 0], [-2.5, 7], [-2.5, 0]], x + 4.5, y + 9);
+  doc.fill();
+
   sf(doc, CAT_YELLOW); doc.rect(x + 10, y + 8.2, 32, 1, 'F');
-  // White wordmark — font size reduced to fit inside 44mm plate
   st(doc, WHITE); doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
   doc.text('NOVACRAFTERS', x + 10, y + 6.8);
 }
 
 /* ── Page footer — CAT yellow/black theme ── */
 function pageFooter(doc, pageNum, timestamp) {
-  const y = PAGE_H - 10;
-  // Full-width black strip
-  sf(doc, CAT_BLACK); doc.rect(0, y - 3, PAGE_W, 13, 'F');
-  // Yellow top accent
+  const y = PAGE_H - 11;
+  sf(doc, CAT_BLACK); doc.rect(0, y - 3, PAGE_W, 14, 'F');
   sf(doc, CAT_YELLOW); doc.rect(0, y - 3, PAGE_W, 1.5, 'F');
-  // Left: system info in white
+
   st(doc, WHITE); doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-  doc.text(
-    `NovaCrafters  |  Intake & Exhaust Air Leak Diagnostic System  |  v2.0  |  Generated: ${timestamp}`,
-    MARGIN, y + 3
-  );
-  // Right: page number in yellow
+  const footerText = `NovaCrafters | Intake & Exhaust Air Leak Detection | v2.0 | Generated: ${timestamp}`;
+  doc.text(footerText, MARGIN, y + 3, { maxWidth: PAGE_W - MARGIN * 2 - 34 });
+
   st(doc, CAT_YELLOW); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
   doc.text(`Page ${pageNum}`, PAGE_W - MARGIN, y + 3, { align: 'right' });
 }
@@ -185,54 +308,87 @@ function checkPage(doc, y, needed, timestamp) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   NOMINAL SENSOR RANGES  — reference data used throughout the report
+   SENSOR DATA  — primary diagnostic sensors only
 ═══════════════════════════════════════════════════════════════════════════ */
-const NOMINAL_RANGES = [
-  { sensor: 'Engine RPM',              min: 600,  max: 2500, unit: 'RPM',  c7: '600–1800',  c15: '600–2100' },
-  { sensor: 'Fuel Rate',               min: 1,    max: 120,  unit: 'L/hr', c7: '1–30',      c15: '1–80'     },
-  { sensor: 'Fuel Injection Time',     min: 0.5,  max: 5.0,  unit: 'ms',   c7: '0.5–2.8',   c15: '0.5–3.5'  },
-  { sensor: 'Fuel Injection Pressure', min: 200,  max: 2000, unit: 'bar',  c7: '600–1400',  c15: '900–1800' },
-  { sensor: 'Boost Pressure',          min: 0.8,  max: 3.0,  unit: 'bar',  c7: '1.0–2.4',   c15: '1.2–2.8'  },
-  { sensor: 'Intake Manifold Pressure',min: 0.9,  max: 3.5,  unit: 'bar',  c7: '1.0–2.5',   c15: '1.2–3.0'  },
-  { sensor: 'Exhaust Back Pressure',   min: 0.05, max: 0.5,  unit: 'bar',  c7: '0.05–0.30', c15: '0.05–0.40'},
-  { sensor: 'Air Flow (MAF)',          min: 100,  max: 800,  unit: 'kg/h', c7: '150–450',   c15: '250–700'  },
-  { sensor: 'Intake Air Temperature',  min: -10,  max: 60,   unit: '°C',   c7: '20–55',     c15: '20–55'    },
-  { sensor: 'Exhaust Gas Temperature', min: 300,  max: 750,  unit: '°C',   c7: '350–620',   c15: '380–680'  },
+const ENGINE_FAMILY_LABELS = [
+  { value: 'C7', label: 'Caterpillar C7' },
+  { value: 'C15', label: 'Caterpillar C15' },
 ];
 
-/* ─── Classify a sensor reading against its nominal min/max ─── */
-function classifySensor(value, min, max) {
-  const v   = parseFloat(value);
-  const lo  = min * 0.85;   // 15% below min = WARNING
-  const hi  = max * 1.15;   // 15% above max = WARNING
-  if (isNaN(v))              return 'N/A';
-  if (v < lo || v > hi)      return 'ABNORMAL';
-  if (v < min || v > max)    return 'WARNING';
-  return 'NORMAL';
-}
+const ENGINE_VERSION_LABELS = [
+  { value: 'c7_acert', label: 'C7 ACERT' },
+  { value: 'c7_acert_t4i', label: 'C7 ACERT Tier 4 Interim' },
+  { value: 'c7_acert_t4f', label: 'C7 ACERT Tier 4 Final' },
+  { value: 'c7_acert_2020', label: 'C7 ACERT (2020 Series)' },
+  { value: 'c15_acert', label: 'C15 ACERT' },
+  { value: 'c15_acert_t4i', label: 'C15 ACERT Tier 4 Interim' },
+  { value: 'c15_acert_t4f', label: 'C15 ACERT Tier 4 Final' },
+  { value: 'c15_acert_2020', label: 'C15 ACERT (2020 Series)' },
+];
 
-/* ─── Build sensor data rows from inputs ─── */
-function buildSensorRows(inputs, isC15) {
-  const rpm = parseFloat(inputs?.rpm);
-  const rpmRange = isC15 ? { min: 600, max: 2100 } : { min: 600, max: 1800 };
-  const fr  = parseFloat(inputs?.fuelRate);
-  const frRange  = isC15 ? { min: 1, max: 80 }    : { min: 1, max: 30 };
-  const fit = parseFloat(inputs?.fuelInjectionTime);
-  const fitRange = isC15 ? { min: 0.5, max: 3.5 } : { min: 0.5, max: 2.8 };
-  const ip  = parseFloat(inputs?.injectionPressure);
-  const ipRange  = isC15 ? { min: 900, max: 1800 } : { min: 600, max: 1400 };
+const ENGINE_CONFIG_LABELS = [
+  { value: 'turbocharged', label: 'Turbocharged Diesel Engine' },
+  { value: 'industrial', label: 'Industrial Diesel Engine' },
+  { value: 'generator', label: 'Generator Diesel Engine' },
+  { value: 'heavyduty', label: 'Heavy Duty Industrial Engine' },
+];
 
-  return [
-    ['Engine RPM',              isNaN(rpm) ? '—' : rpm, 'RPM',  isC15 ? '600–2100'  : '600–1800',  isNaN(rpm) ? '—' : classifySensor(rpm, rpmRange.min, rpmRange.max)],
-    ['Fuel Rate',               isNaN(fr)  ? '—' : fr,  'L/hr', isC15 ? '1–80'      : '1–30',      isNaN(fr)  ? '—' : classifySensor(fr,  frRange.min,  frRange.max)],
-    ['Fuel Injection Time',     isNaN(fit) ? '—' : fit, 'ms',   isC15 ? '0.5–3.5ms' : '0.5–2.8ms', isNaN(fit) ? '—' : classifySensor(fit, fitRange.min, fitRange.max)],
-    ['Fuel Injection Pressure', isNaN(ip)  ? '—' : ip,  'bar',  isC15 ? '900–1800'  : '600–1400',  isNaN(ip)  ? '—' : classifySensor(ip,  ipRange.min,  ipRange.max)],
-    ['Boost Pressure',          'N/A', 'bar',  isC15 ? '1.2–2.8'  : '1.0–2.4',  'N/A'],
-    ['Intake Manifold Pressure','N/A', 'bar',  isC15 ? '1.2–3.0'  : '1.0–2.5',  'N/A'],
-    ['Exhaust Back Pressure',   'N/A', 'bar',  isC15 ? '0.05–0.40': '0.05–0.30', 'N/A'],
-    ['Air Flow (MAF)',           'N/A', 'kg/h', isC15 ? '250–700'  : '150–450',   'N/A'],
-    ['Exhaust Gas Temperature',  'N/A', '°C',   isC15 ? '380–680'  : '350–620',   'N/A'],
-  ];
+const TURBO_CONFIG_LABELS = [
+  { value: 'ta', label: 'TA (Turbocharged Aftercooled)' },
+  { value: 'ataac', label: 'ATAAC (Air-To-Air Aftercooled)' },
+  { value: 'standard', label: 'Standard Configuration' },
+  { value: 'highoutput', label: 'High Output Configuration' },
+];
+
+const SENSOR_DEFINITIONS = [
+  {
+    name: 'MAP Sensor',
+    keys: ['map', 'mapSensor', 'mapSensorValue', 'mapPressure', 'intakeManifoldPressure', 'intake_manifold_pressure'],
+  },
+  {
+    name: 'MAF Sensor',
+    keys: ['maf', 'mafSensor', 'mafSensorValue', 'airFlow', 'airFlowMaf', 'massAirFlow', 'mass_air_flow'],
+  },
+  {
+    name: 'Boost Pressure Sensor',
+    keys: ['boost', 'boostPressure', 'boostPressureSensor', 'boostSensor'],
+  },
+  {
+    name: 'Intake Air Temperature Sensor',
+    keys: ['iat', 'intakeAirTemperature', 'intakeAirTemperatureSensor', 'iatSensor', 'intakeTemp', 'intake_air_temperature'],
+  },
+  {
+    name: 'Exhaust Pressure Sensor',
+    keys: ['exhaustPressure', 'exhaustBackPressure', 'ebp', 'exhaustPressureSensor', 'ebpSensor', 'exhaust_pressure'],
+  },
+  {
+    name: 'Exhaust Temperature Sensor',
+    keys: ['egt', 'exhaustGasTemperature', 'exhaustTemperature', 'exhaustTemperatureSensor', 'egtSensor', 'exhaust_temperature'],
+  },
+  {
+    name: 'Turbo Speed Sensor',
+    keys: ['turboSpeed', 'turboSpeedSensor', 'turboRpm', 'turbo_speed'],
+  },
+  {
+    name: 'Ambient Pressure Sensor',
+    keys: ['ambientPressure', 'ambientPressureSensor', 'baroPressure', 'barometricPressure', 'ambient', 'ambient_pressure'],
+  },
+];
+
+function buildSensorRows(report, inputs, prediction, status) {
+  const faultSensor = resolveFaultSensor(report, prediction, report.leakLocation || report.detectedLocation || report.detectedPath);
+  const isGo = status === 'GO' || prediction === 'No Leak' || prediction === 'Healthy';
+
+  return SENSOR_DEFINITIONS.map((sensor) => {
+    const value = sensorValueFrom(inputs, report, sensor.keys);
+    const status = resolveSensorStatus(sensor.name, report, faultSensor, isGo);
+    return [
+      sensor.name,
+      formatNumber(value),
+      sensorUnitFor(sensor.name),
+      status,
+    ];
+  });
 }
 
 /* ─── Dynamic recommendations by prediction ─── */
@@ -283,12 +439,12 @@ function getRecommendations(prediction, isGo) {
    ENGINE DIAGRAM  — vector, colour-coded zones
 ═══════════════════════════════════════════════════════════════════════════ */
 function drawEngineDiagram(doc, y, isGo, prediction, engineModel) {
-  const hasIntake  = !isGo && (prediction === 'Intake Leak'  || prediction === 'Combined Leak');
+  const hasIntake = !isGo && (prediction === 'Intake Leak' || prediction === 'Combined Leak');
   const hasExhaust = !isGo && (prediction === 'Exhaust Leak' || prediction === 'Combined Leak');
 
   const DIAG_H = 88;  // taller panel so all labels + status text fit without clipping
-  const cx     = PAGE_W / 2;
-  const eW     = 48;  // slightly narrower engine block to leave room for manifold labels
+  const cx = PAGE_W / 2;
+  const eW = 48;  // slightly narrower engine block to leave room for manifold labels
 
   // ── Background grid panel
   sf(doc, [242, 242, 242]); sd(doc, GRAY_LIGHT); doc.setLineWidth(0.2);
@@ -296,7 +452,7 @@ function drawEngineDiagram(doc, y, isGo, prediction, engineModel) {
 
   // ── Helper: zone colour
   const zoneColor = (leaking) => leaking ? RED : (isGo ? GREEN : [180, 180, 180]);
-  const zoneBg    = (leaking) => leaking ? RED_LIGHT : (isGo ? GREEN_LIGHT : [220, 220, 220]);
+  const zoneBg = (leaking) => leaking ? RED_LIGHT : (isGo ? GREEN_LIGHT : [220, 220, 220]);
 
   // ── Air filter
   sf(doc, [210, 210, 210]); sd(doc, [80, 80, 80]); doc.setLineWidth(0.7);
@@ -307,7 +463,7 @@ function drawEngineDiagram(doc, y, isGo, prediction, engineModel) {
 
   // ── Turbocharger compressor (left, intake side)
   const tcColor = zoneColor(hasIntake);
-  const tcBg    = zoneBg(hasIntake);
+  const tcBg = zoneBg(hasIntake);
   sf(doc, tcBg); sd(doc, tcColor); doc.setLineWidth(hasIntake ? 1.2 : 0.8);
   doc.circle(MARGIN + 24, y + 32, 12, 'FD');
   sf(doc, isGo ? [180, 230, 180] : (hasIntake ? RED_LIGHT : [190, 190, 190]));
@@ -369,6 +525,57 @@ function drawEngineDiagram(doc, y, isGo, prediction, engineModel) {
 
   // ── Turbine housing (right, exhaust side)
   const ttColor = zoneColor(hasExhaust);
+  const ttBg = zoneBg(hasExhaust);
+  sf(doc, ttBg); sd(doc, ttColor); doc.setLineWidth(hasExhaust ? 1.2 : 0.8);
+  doc.circle(cx + eW + 25, y + 32, 12, 'FD');
+  sf(doc, hasExhaust ? RED_LIGHT : (isGo ? [180, 230, 180] : [190, 190, 190]));
+  doc.circle(cx + eW + 25, y + 32, 7.5, 'F');
+  sf(doc, hasExhaust ? [220, 80, 80] : (isGo ? [120, 200, 120] : [160, 160, 160]));
+  doc.circle(cx + eW + 25, y + 32, 3.5, 'F');
+  st(doc, ttColor); doc.setFont('helvetica', 'bold'); doc.setFontSize(4.5);
+  doc.text('TURBO', cx + eW + 25, y + 47, { align: 'center' });
+  doc.text('TURB.', cx + eW + 25, y + 51, { align: 'center' });
+
+  // ── Charge air cooler (below engine, intake side)
+  sf(doc, [225, 225, 225]); sd(doc, [80, 80, 80]); doc.setLineWidth(0.5);
+  doc.rect(cx - eW, y + 63, 46, 7, 'FD');
+  st(doc, [80, 80, 80]); doc.setFont('helvetica', 'normal'); doc.setFontSize(4);
+  doc.text('CHARGE AIR COOLER', cx - eW + 23, y + 67.5, { align: 'center' });
+
+  // ── Exhaust outlet pipe
+  sf(doc, zoneBg(hasExhaust)); sd(doc, exhaustColor);
+  doc.setLineWidth(hasExhaust ? 1.0 : 0.5);
+  doc.rect(cx + eW + 37, y + 28, 18, 7, 'FD');
+  st(doc, GRAY_DARK); doc.setFontSize(4);
+  doc.text('EXHAUST OUT', cx + eW + 46, y + 33, { align: 'center' });
+
+  // ── Status label — inside safe zone, above colour key
+  const statusColor = isGo ? GREEN : RED;
+  const statusLabel = isGo
+    ? 'NO LEAK DETECTED  —  ALL SYSTEMS NOMINAL'
+    : `${prediction.toUpperCase()}  DETECTED  —  MAINTENANCE REQUIRED`;
+  st(doc, statusColor); doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
+  doc.text(statusLabel, cx, y + DIAG_H - 14, { align: 'center' });
+
+  // ── Colour key — last line inside panel
+  const keyY = y + DIAG_H - 7;
+  sf(doc, GREEN); doc.circle(MARGIN + 4, keyY, 1.8, 'F');
+  st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5);
+  doc.text('NORMAL', MARGIN + 8, keyY + 1);
+  sf(doc, ORANGE); doc.circle(MARGIN + 30, keyY, 1.8, 'F');
+  doc.text('WARNING', MARGIN + 34, keyY + 1);
+  sf(doc, RED); doc.circle(MARGIN + 58, keyY, 1.8, 'F');
+  doc.text('LEAK / ABNORMAL', MARGIN + 62, keyY + 1);
+
+  return y + DIAG_H + 4;
+}
+
+/* ════════════════════════════════════════════════════════�// Removed corrupted summary grid and diagram code
+'!', cx + eW + 14, y + 35, { align: 'center' });
+  }
+
+  // ── Turbine housing (right, exhaust side)
+  const ttColor = zoneColor(hasExhaust);
   const ttBg    = zoneBg(hasExhaust);
   sf(doc, ttBg); sd(doc, ttColor); doc.setLineWidth(hasExhaust ? 1.2 : 0.8);
   doc.circle(cx + eW + 25, y + 32, 12, 'FD');
@@ -417,349 +624,182 @@ function drawEngineDiagram(doc, y, isGo, prediction, engineModel) {
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN EXPORT
 ═══════════════════════════════════════════════════════════════════════════ */
-export function generateDiagnosticPDF(report, currentUser) {
+export function generateDiagnosticPDF(report, currentUser, options = {}) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
   doc.setFont('helvetica');
 
   /* ── Destructure report ── */
-  const {
-    id,
-    timestamp,
-    prediction  = report.leak_section || 'No Leak',
-    status      = report.go_nogo      || 'GO',
-    confidence  = 0,
-    riskLevel   = report.riskLevel || report.severity || 'Low',
-    recommendations = [],
-    inputs      = {},
-    engineModel,
-    technician,
-    engineVersionLabel = '',
-    manufacturingYears = '',
-  } = report;
+const {
+  id,
+  timestamp,
+  prediction = report.leak_section || 'No Leak',
+  status = report.go_nogo || 'GO',
+  confidence = 0,
+  riskLevel = report.riskLevel || report.severity || 'Low',
+  recommendations = [],
+  inputs = {},
+  engineModel,
+  engineFamily,
+  engineFamilyLabel,
+  engineVersion,
+  engineVersionLabel,
+  variant,
+  manufacturingYear,
+  manufacturingYears,
+  technician,
+} = report;
 
-  const safeRisk   = riskLevel || 'Low';
-  const isGo       = status === 'GO' || prediction === 'No Leak';
-  const isC15      = (engineModel || '').includes('C15');
-  const leakDisplay = getLeakDisplay(prediction, riskLevel);
-  const hasIntake   = !isGo && (prediction === 'Intake Leak'  || prediction === 'Combined Leak');
-  const hasExhaust  = !isGo && (prediction === 'Exhaust Leak' || prediction === 'Combined Leak');
-  const operator    = technician || currentUser?.fullName || 'N/A';
-  const engine      = `Caterpillar ${engineModel || '—'}`;
-  const leakLocationMap = {
-    'No Leak':       'No leak location identified',
-    'Intake Leak':   'Turbocharger Intake Pipe / Intake Manifold',
-    'Exhaust Leak':  'Exhaust Manifold Joint / Turbine Outlet',
-    'Combined Leak': 'Intake Manifold + Exhaust Manifold',
-  };
-  const leakLocation = leakLocationMap[prediction] || '—';
-  const dynamicRecs  = getRecommendations(prediction, isGo);
+const safeRisk = riskLevel || 'Low';
+const isGo = status === 'GO' || prediction === 'No Leak' || prediction === 'Healthy';
+const leakDisplay = getLeakDisplay(prediction, riskLevel);
+const operator = technician || currentUser?.fullName || 'N/A';
+const engineFamilyValue = engineFamily || inputs?.engineFamily || engineModel || 'Not provided in input';
+const engine = cleanValue(engineFamilyLabel || inputs?.engineFamilyLabel || engineFamilyValue);
+const detectedLeakPath = isGo
+  ? 'No leak path identified'
+  : getDetectedPath(report.leakLocation || report.detectedLocation || report.leak_section || prediction);
+const leakLocation = cleanValue(
+  isGo ? undefined : report.leakLocation || report.detectedLocation || report.detectedPath || report.leakSection,
+  isGo ? 'No leak location identified' : detectedLeakPath
+);
+const detectedLeakLocation = cleanValue(
+  isGo ? undefined : report.detectedLocation || report.leakLocation,
+  isGo ? 'No leak location identified' : leakLocation
+);
+const dynamicRecs = getRecommendations(prediction, isGo);
 
-  /* ── Colour helpers ── */
-  const sevColor = safeRisk === 'Critical' ? RED
-    : safeRisk === 'High'   ? ORANGE
+/* ── Colour helpers ── */
+const sevColor = safeRisk === 'Critical' ? RED
+  : safeRisk === 'High' ? ORANGE
     : safeRisk === 'Medium' ? [161, 98, 7]
-    : GREEN;
+      : GREEN;
 
-  let y = MARGIN;
+let y = MARGIN;
 
-  /* ── PAGE HEADER — white bg, CAT yellow/black/white theme ── */
-  sf(doc, WHITE); doc.rect(0, 0, PAGE_W, 36, 'F');
-  // Black bar across top
-  sf(doc, CAT_BLACK); doc.rect(0, 0, PAGE_W, 2.5, 'F');
-  // Yellow accent line below header
-  sf(doc, CAT_YELLOW); doc.rect(0, 33, PAGE_W, 2.5, 'F');
+/* ── PAGE HEADER — white bg, CAT yellow/black/white theme ── */
+sf(doc, WHITE); doc.rect(0, 0, PAGE_W, 36, 'F');
 
-  // NovaCrafters logo — top-left, vertically centred in header (header is 0–33mm)
-  drawNCLogo(doc, MARGIN, 12);
+/* ═══════════════════════════════════════════════════════════════════
+   SECTION 01 — ANALYSIS SUMMARY
+═══════════════════════════════════════════════════════════════════ */
+y = sectionBar(doc, y, '01', 'Analysis Summary');
+y += 3;
 
-  // Report title — black bold centred
-  st(doc, CAT_BLACK); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-  doc.text('AUTOMATED INTAKE AND EXHAUST', PAGE_W / 2, 12, { align: 'center' });
-  doc.text('AIR LEAK DIAGNOSTIC REPORT', PAGE_W / 2, 19, { align: 'center' });
-  // Subtitle in dark grey
-  st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-  doc.text('NovaCrafters Engine Diagnostics Platform  |  Confidential Service Document', PAGE_W / 2, 25, { align: 'center' });
+// Verdict box
+y = verdictBox(doc, y, isGo, leakLocation);
+y += 3;
 
-  // Report meta — right-aligned in dark grey
-  st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-  doc.text(`Report ID: ${id}`, PAGE_W - MARGIN, 10, { align: 'right' });
-  doc.text(`Date: ${timestamp}`, PAGE_W - MARGIN, 15, { align: 'right' });
-  doc.text(`Engine: ${engine}`, PAGE_W - MARGIN, 20, { align: 'right' });
+// Summary grid — wrapped cells prevent detected path truncation
+const col1W = CONTENT_W / 2 - 1;
+const col2X = MARGIN + col1W + 2;
+const summaryLeft = [
+  ['Diagnosis Result', isGo ? 'SYSTEM CLEAR' : 'LEAK DETECTED'],
+  ['System Status', `${status}`],
+  ['Leak Status', leakDisplay.leakLabel],
+  ['Confidence Score', `${confidence}%`],
+  ['Detected Path', detectedLeakPath],
+];
+const summaryRight = [
+  ['Risk Level', leakDisplay.isNil ? 'No risk' : safeRisk],
+  ['Detected Location', leakDisplay.isNil ? 'No leak location identified' : leakLocation],
+  ['Analysis Time', timestamp],
+  ['Technician', operator],
+];
 
-  y = 40;
-
-  /* ═══════════════════════════════════════════════════════════════════
-     SECTION 01 — ANALYSIS SUMMARY
-  ═══════════════════════════════════════════════════════════════════ */
-  y = sectionBar(doc, y, '01', 'Analysis Summary');
-  y += 3;
-
-  // Verdict box
-  y = verdictBox(doc, y, isGo, leakLocation);
-  y += 3;
-
-  // Summary KV grid — 2 columns
-  const col1W = CONTENT_W / 2 - 1;
-  const col2X = MARGIN + col1W + 2;
-  const summaryLeft = [
-    ['Diagnosis Result',   isGo ? 'SYSTEM CLEAR' : 'LEAK DETECTED'],
-    ['System Status',      `${status}`],
-    ['Leak Status',        leakDisplay.leakLabel],
-    ['Confidence Score',   `${confidence}%`],
-  ];
-  const summaryRight = [
-    ['Risk Level',         leakDisplay.isNil ? '—' : safeRisk],
-    ['Detected Location',  leakDisplay.isNil ? '—' : leakLocation],
-    ['Analysis Time',      timestamp],
-    ['Technician',         operator],
-  ];
-
-  const startY = y;
-  const ROW_H  = 7;
-  summaryLeft.forEach(([k, v], i) => {
-    const ry = startY + i * ROW_H;
-    if (i % 2 === 0) { sf(doc, GRAY_BG); doc.rect(MARGIN, ry, col1W, ROW_H, 'F'); }
-    sd(doc, GRAY_LIGHT); doc.setLineWidth(0.2); doc.rect(MARGIN, ry, col1W, ROW_H, 'S');
-    st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-    doc.text(k, MARGIN + 2, ry + 4.8);
-    // Value colour: Leak Status green if GO
-    const isLeakStatus = k === 'Leak Status';
-    const vColor = isLeakStatus && isGo ? GREEN
-      : isLeakStatus && !isGo ? RED
-      : CAT_BLACK;
-    st(doc, vColor); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
-    doc.text(String(v), MARGIN + col1W * 0.5 + 2, ry + 4.8);
+const summaryCell = (x, y, w, label, value, shade, valueColor) => {
+  const valueStart = x + Math.min(72, w * 0.42);
+  const valueW = w - (valueStart - x) - 2;
+  const valueLines = doc.splitTextToSize(String(value), Math.max(valueW - 4, 10));
+  const rowH = Math.max(8, 3.6 + valueLines.length * 3.4);
+  drawCell(doc, x, y, w, rowH, shade);
+  drawWrappedCellText(doc, label, x, y, valueStart - x, rowH, {
+    color: GRAY_DARK,
+    style: 'normal',
+    size: 7,
+    align: 'middle',
   });
-  summaryRight.forEach(([k, v], i) => {
-    const ry = startY + i * ROW_H;
-    if (i % 2 === 0) { sf(doc, GRAY_BG); doc.rect(col2X, ry, col1W, ROW_H, 'F'); }
-    sd(doc, GRAY_LIGHT); doc.setLineWidth(0.2); doc.rect(col2X, ry, col1W, ROW_H, 'S');
-    st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
-    doc.text(k, col2X + 2, ry + 4.8);
-    const isRisk = k === 'Risk Level';
-    const vColor = isRisk && !leakDisplay.isNil ? sevColor : CAT_BLACK;
-    st(doc, vColor); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
-    doc.text(String(v), col2X + col1W * 0.5 + 2, ry + 4.8);
+  drawWrappedCellText(doc, value, valueStart, y, valueW, rowH, {
+    color: valueColor,
+    style: 'bold',
+    size: 7,
   });
-  y = startY + summaryLeft.length * ROW_H + 5;
+  return rowH;
+};
+// Render summary left column
+let leftEndY = y;
+summaryLeft.forEach(([k, v], i) => {
+  const isRisk = k === 'Risk Level';
+  const vColor = isRisk ? sevColor : CAT_BLACK;
+  leftEndY += summaryCell(MARGIN, leftEndY, col1W, k, v, i % 2 === 0, vColor);
+});
+// Render summary right column
+let rightEndY = y;
+summaryRight.forEach(([k, v], i) => {
+  const isRisk = k === 'Risk Level';
+  const vColor = isRisk ? sevColor : CAT_BLACK;
+  const col2W = CONTENT_W - col1W - 2;
+  rightEndY += summaryCell(col2X, rightEndY, col2W, k, v, i % 2 === 0, vColor);
+});
+y = Math.max(leftEndY, rightEndY);
+y += 3;
 
-  /* ═══════════════════════════════════════════════════════════════════
-     SECTION 02 — ENGINE IDENTIFICATION
-  ═══════════════════════════════════════════════════════════════════ */
-  y = checkPage(doc, y, 40, timestamp);
-  y = sectionBar(doc, y, '02', 'Engine Identification');
-  y += 3;
+// SECTION 05 — LEAK LOCATION VISUALIZATION
+y = drawEngineDiagram(doc, y, isGo, prediction, engineModel);
+y += 5;
 
-  const engineRows = [
-    ['Engine Family',          engine],
-    ['Engine Version / Variant', engineVersionLabel || '—'],
-    ['Manufacturing Year(s)',  manufacturingYears  || '—'],
-    ['Engine Configuration',   inputs?.engineConfig || '—'],
-    ['Turbo Configuration',    inputs?.turboConfig  || '—'],
-  ];
-  engineRows.forEach(([k, v], i) => { y = kvRow(doc, y, k, v, i % 2 === 0); });
-  y += 5;
+// SECTION 06 — SENSOR ANALYSIS
+y = checkPage(doc, y, 30, timestamp);
+y = sectionBar(doc, y, '06', 'Sensor Analysis');
+y += 3;
+const sensorHeaders = ['Sensor', 'Value', 'Units', 'Status'];
+const sensorColWidths = [80, 30, 30, 30];
+y = tableHeader(doc, y, sensorHeaders, sensorColWidths);
+const sensorRows = buildSensorRows(report, inputs, prediction, status);
+sensorRows.forEach((row, idx) => {
+  y = sensorRow(doc, y, row, idx % 2 === 0, sensorColWidths);
+});
+y += 3;
 
-  /* ═══════════════════════════════════════════════════════════════════
-     SECTION 03 — SENSOR DATA ANALYSIS
-  ═══════════════════════════════════════════════════════════════════ */
-  y = checkPage(doc, y, 90, timestamp);
-  y = sectionBar(doc, y, '03', 'Sensor Data Analysis  (3-Second Capture Window)');
-  y += 3;
+// SECTION 07 — RECOMMENDATIONS
+y = checkPage(doc, y, 60, timestamp);
+y = sectionBar(doc, y, '07', 'Recommendations');
+y += 3;
+// Combine dynamic and static recommendations
+const allRecs = [...(dynamicRecs || []), ...(recommendations || [])];
+allRecs.forEach(rec => {
+  const color = rec.toUpperCase().includes('GO') ? GREEN : RED;
+  y = checkLine(doc, y, rec, color);
+});
+y += 5;
 
-  // Intro note
-  st(doc, GRAY_DARK); doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5);
-  doc.text(
-    'Sensor readings captured during the 3-second diagnostic window. Values compared against model-calibrated nominal ranges.',
-    MARGIN, y + 3
-  );
-  y += 8;
 
-  // Table header rows: use yellow fill
-  y = tableHeader(doc, y, ['SENSOR PARAMETER', 'MEASURED', 'UNIT', 'NORMAL RANGE', 'STATUS'],
-    [52, 28, 22, 40, 30]);
 
-  const sensorRows = buildSensorRows(inputs, isC15);
-  sensorRows.forEach((row, i) => { y = sensorRow(doc, y, row, i % 2 === 0); });
 
-  // Legend
-  y += 3;
-  const legendItems = [
-    { label: 'NORMAL',   color: GREEN  },
-    { label: 'WARNING',  color: ORANGE },
-    { label: 'ABNORMAL', color: RED    },
-    { label: 'N/A — Not measured in this session', color: GRAY_MID },
-  ];
-  st(doc, GRAY_DARK); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
-  doc.text('STATUS KEY:', MARGIN, y + 3);
-  let lx = MARGIN + 24;
-  legendItems.forEach(({ label, color }) => {
-    sf(doc, color); doc.roundedRect(lx, y, 3, 3, 0.5, 0.5, 'F');
-    st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
-    doc.text(label, lx + 5, y + 2.8);
-    lx += doc.getTextWidth(label) + 12;
-  });
-  y += 8;
 
-  /* ═══════════════════════════════════════════════════════════════════
-     SECTION 04 — NOMINAL OPERATING SENSOR RANGES
-  ═══════════════════════════════════════════════════════════════════ */
-  y = checkPage(doc, y, 85, timestamp);
-  y = sectionBar(doc, y, '04', 'Nominal Operating Sensor Ranges');
-  y += 3;
 
-  st(doc, GRAY_DARK); doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5);
-  doc.text(
-    `Reference values used by the ML diagnostic model for ${isC15 ? 'C15' : 'C7'} engine family.`,
-    MARGIN, y + 3
-  );
-  y += 8;
 
-  // Nominal ranges header: 3 columns with yellow
-  y = tableHeader(doc, y, ['SENSOR PARAMETER', `NORMAL RANGE  (${isC15 ? 'C15' : 'C7'})`, 'UNIT'],
-    [90, 62, 30]);
 
-  NOMINAL_RANGES.forEach(({ sensor, unit, c7, c15 }, i) => {
-    const range = isC15 ? c15 : c7;
-    const ROW_H = 7;
-    if (i % 2 === 0) { sf(doc, GRAY_BG); doc.rect(MARGIN, y, CONTENT_W, ROW_H, 'F'); }
-    sd(doc, GRAY_LIGHT); doc.setLineWidth(0.2); doc.rect(MARGIN, y, CONTENT_W, ROW_H, 'S');
-    st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-    doc.text(sensor, MARGIN + 2, y + 4.8);
-    st(doc, CAT_BLACK); doc.setFont('helvetica', 'bold');
-    doc.text(range, MARGIN + 92, y + 4.8);
-    st(doc, GRAY_DARK); doc.setFont('helvetica', 'normal');
-    doc.text(unit, MARGIN + 154, y + 4.8);
-    y += ROW_H;
-  });
-  y += 5;
 
-  /* ═══════════════════════════════════════════════════════════════════
-     SECTION 05 — LEAK DETECTION ANALYSIS
-  ═══════════════════════════════════════════════════════════════════ */
-  y = checkPage(doc, y, 55, timestamp);
-  y = sectionBar(doc, y, '05', 'Leak Detection Analysis');
-  y += 3;
 
-  const leakRows = [
-    ['Leak Status',            leakDisplay.leakLabel],
-    ['Leak Severity',          leakDisplay.isNil ? '—' : safeRisk],
-    ['Leak Percentage',        isGo ? '0%' : `> 0%  (${safeRisk} threshold exceeded)`],
-    ['Detected Section',       leakDisplay.sectionDisplay],
-    ['Detected Location',      leakDisplay.isNil ? 'No leak location identified' : leakLocation],
-    ['Root Cause Summary',     isGo
-      ? 'All air pathway readings within calibrated nominal thresholds. No anomaly detected.'
-      : `ML model detected statistically significant anomaly consistent with ${prediction}. ` +
-        `Primary indicators: abnormal pressure differential and/or mass air flow deviation.`],
-  ];
-  leakRows.forEach(([k, v], i) => {
-    const isLeakStatus = k === 'Leak Status';
-    const isSeverity   = k === 'Leak Severity';
-    const vColor = isLeakStatus && isGo  ? GREEN
-      : isLeakStatus && !isGo ? RED
-      : isSeverity   && !leakDisplay.isNil ? sevColor
-      : CAT_BLACK;
-    y = kvRow(doc, y, k, v, i % 2 === 0, vColor);
-  });
-  y += 5;
 
-  /* ═══════════════════════════════════════════════════════════════════
-     SECTION 06 — LEAK LOCATION VISUALIZATION
-  ═══════════════════════════════════════════════════════════════════ */
-  y = checkPage(doc, y, 85, timestamp);
-  y = sectionBar(doc, y, '06', 'Leak Location Visualization — Engine Air Pathway Schematic');
-  y += 3;
 
-  st(doc, GRAY_DARK); doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5);
-  doc.text(
-    `${engineModel || ''} air pathway diagram. Leak zones highlighted in RED. Healthy zones in GREEN.`,
-    MARGIN, y + 3
-  );
-  y += 7;
-  y = drawEngineDiagram(doc, y, isGo, prediction, engineModel);
-  y += 3;
 
-  /* ═══════════════════════════════════════════════════════════════════
-     SECTION 07 — RECOMMENDED ACTIONS
-  ═══════════════════════════════════════════════════════════════════ */
-  y = checkPage(doc, y, 55, timestamp);
-  y = sectionBar(doc, y, '07', `Recommended Actions  — ${isGo ? 'Routine Maintenance' : prediction + ' Response'}`);
-  y += 4;
 
-  // Heading label
-  sf(doc, isGo ? GREEN_LIGHT : RED_LIGHT);
-  sd(doc, isGo ? GREEN : RED); doc.setLineWidth(0.5);
-  doc.roundedRect(MARGIN, y, CONTENT_W, 8, 1, 1, 'FD');
-  st(doc, isGo ? GREEN : RED); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-  doc.text(
-    isGo ? '✓  SYSTEM CLEAR — Continue routine maintenance schedule'
-          : `⚠  ACTION REQUIRED — ${prediction} identified. Address immediately.`,
-    MARGIN + 4, y + 5.5
-  );
-  y += 12;
 
-  const allRecs = [...dynamicRecs, ...(recommendations || [])];
-  const uniqueRecs = [...new Set(allRecs)];
-  uniqueRecs.forEach((rec) => {
-    y = checkPage(doc, y, 14, timestamp);
-    y = checkLine(doc, y, rec, isGo ? GREEN : RED);
-  });
-  y += 5;
 
-  /* ═══════════════════════════════════════════════════════════════════
-     SECTION 08 — INPUT PARAMETERS SUMMARY
-  ═══════════════════════════════════════════════════════════════════ */
-  y = checkPage(doc, y, 50, timestamp);
-  y = sectionBar(doc, y, '08', 'Input Parameters Summary');
-  y += 3;
+/* ═══════════════════════════════════════════════════════════════════
+   FOOTER — every page
+═══════════════════════════════════════════════════════════════════ */
+const totalPages = doc.internal.getNumberOfPages();
+for (let i = 1; i <= totalPages; i++) {
+  doc.setPage(i);
+  pageFooter(doc, `${i} of ${totalPages}`, timestamp);
+}
 
-  const paramRows = [
-    ['Engine Model',             engine],
-    ['Engine RPM',               `${inputs?.rpm ?? '—'} RPM`],
-    ['Fuel Rate',                `${inputs?.fuelRate ?? '—'} L/hr`],
-    ['Fuel Injection Time',      `${inputs?.fuelInjectionTime ?? '—'} ms`],
-    ['Fuel Injection Pressure',  `${inputs?.injectionPressure ?? '—'} bar`],
-    ['Leak Classification',      leakDisplay.isNil ? `${leakDisplay.leakLabel}  (${leakDisplay.leakStatus})` : prediction],
-    ['Risk Level',               leakDisplay.isNil ? '—' : safeRisk],
-    ['Confidence Score',         `${confidence}%`],
-  ];
-  paramRows.forEach(([k, v], i) => { y = kvRow(doc, y, k, v, i % 2 === 0); });
-  y += 5;
-
-  /* ═══════════════════════════════════════════════════════════════════
-     SECTION 09 — CERTIFICATION & SIGN-OFF
-  ═══════════════════════════════════════════════════════════════════ */
-  y = checkPage(doc, y, 45, timestamp);
-  y = sectionBar(doc, y, '09', 'Certification & Sign-Off');
-  y += 8;
-
-  // Two signature blocks side by side
-  const sigW = CONTENT_W / 2 - 4;
-  const sig2X = MARGIN + sigW + 8;
-  [[MARGIN, 'Technician / Operator', operator, 'CONFIRMED VIA ENTERPRISE AUTH'],
-   [sig2X,  'Supervisor / Approver',  '—',      'PENDING DIGITAL STAMP']
-  ].forEach(([x, role, name, note]) => {
-    // Signature line
-    sd(doc, GRAY_DARK); doc.setLineWidth(0.4);
-    doc.line(x, y + 12, x + sigW, y + 12);
-    st(doc, GRAY_DARK); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
-    doc.text(role, x, y + 16);
-    st(doc, CAT_BLACK); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-    doc.text(name, x, y + 21);
-    st(doc, GRAY_MID); doc.setFont('helvetica', 'italic'); doc.setFontSize(6.5);
-    doc.text(note, x, y + 26);
-  });
-  y += 35;
-
-  /* ═══════════════════════════════════════════════════════════════════
-     FOOTER — every page
-  ═══════════════════════════════════════════════════════════════════ */
-  const totalPages = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    pageFooter(doc, `${i} of ${totalPages}`, timestamp);
-  }
-
-  /* ── Save ── */
-  doc.save(`NC-DIAGNOSTIC-${id}.pdf`);
+/* ── Save ── */
+const filename = `NC-DIAGNOSTIC-${id}.pdf`;
+const blob = doc.output('blob', { type: 'application/pdf' });
+doc.save(filename);
+if (options.onPdfReady) options.onPdfReady(blob, filename);
+return blob;
 }

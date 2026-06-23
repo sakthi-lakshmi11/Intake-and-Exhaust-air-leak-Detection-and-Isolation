@@ -49,7 +49,9 @@ export default function Navbar() {
   };
 
   const handleProfile = () => {
-    navigate('/dashboard');
+    console.log("PROFILE CLICKED");
+    console.log(window.location.href);
+    navigate('/profile');
     setUserDropdown(false);
   };
 
@@ -168,9 +170,16 @@ export default function Navbar() {
             <LanguageSelect />
             {currentUser ? (
               <div className="flex items-center gap-2">
-                <div className="text-right leading-tight">
-                  <div className="text-xs font-semibold text-gray-200" style={FONT}>{currentUser.fullName}</div>
-                </div>
+                <button
+                  onClick={() => {
+                    handleProfile();
+                    setMobileOpen(false);
+                  }}
+                  className="text-right leading-tight hover:text-cat-yellow transition-colors"
+                  style={FONT}
+                >
+                  <div className="text-xs font-semibold text-gray-200">{currentUser.fullName}</div>
+                </button>
                 <button
                   onClick={() => {
                     handleLogout();

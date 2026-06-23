@@ -1,6 +1,11 @@
 // Flask API Integration Configuration
-const USE_MOCK_API = false;
+const USE_MOCK_API = true; // switched to mock mode for reports
 const API_BASE_URL = 'http://127.0.0.1:5000/api';
+
+import {
+  OPERATOR_USERS_KEY,
+  ADMIN_AUDIT_KEY,
+} from './userStatus';
 
 const REPORTS_STORAGE_KEY = 'cat_diagnostics_reports';
 const SEQ_KEY = 'cat_report_sequence'; // 🔥 FIXED GLOBAL COUNTER
@@ -39,30 +44,116 @@ const saveMockReport = (report) => {
   const updated = [reportWithId, ...current];
   localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated));
 
-  // Update technician last activity
-  if (report.technician) {
-    const usersKey = 'cat_mock_users';
-    const users = localStorage.getItem(usersKey);
-
-    if (users) {
-      try {
-        const parsed = JSON.parse(users);
-        const now = new Date().toISOString();
-
-        const updatedUsers = parsed.map(u =>
-          u.fullName === report.technician
-            ? { ...u, lastActivity: now }
-            : u
-        );
-
-        localStorage.setItem(usersKey, JSON.stringify(updatedUsers));
-      } catch (e) {
-        console.warn('User update failed:', e);
-      }
-    }
-  }
+  updateOperatorActivity(report.technician);
 
   return reportWithId;
+};
+
+const updateOperatorActivity = (operatorName) => {
+  if (!operatorName) return;
+  const users = localStorage.getItem(OPERATOR_USERS_KEY);
+  if (!users) return;
+  try {
+    const parsed = JSON.parse(users);
+    const now = new Date().toISOString();
+    const updatedUsers = parsed.map(u =>
+      (u.fullName === operatorName || u.username === operatorName)
+        ? { ...u, lastActivity: now, branch: undefined }
+        : u
+    );
+    localStorage.setItem(OPERATOR_USERS_KEY, JSON.stringify(updatedUsers));
+  } catch (e) {
+    console.warn('User update failed:', e);
+  }
+};
+
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onloadend = () => resolve(reader.result);
+  reader.onerror = reject;
+  reader.readAsDataURL(blob);
+});
+
+export const persistGeneratedReportPdf = async (report, blob, filename) => {
+  if (!blob) return null;
+  const reports = getMockReports();
+  const now = new Date().toISOString();
+  const pdfDataUrl = await blobToDataUrl(blob);
+  let saved = report;
+  const updated = reports.map(r => {
+    if (r.id !== report.id) return r;
+    saved = {
+      ...r,
+      pdfBlob: pdfDataUrl,
+      pdfName: filename,
+      pdfGeneratedAt: now,
+      pdfSizeBytes: blob.size || 0,
+      technician: report.technician || r.technician,
+    };
+    return saved;
+  });
+  if (saved === report) {
+    saved = { ...report, pdfBlob: pdfDataUrl, pdfName: filename, pdfGeneratedAt: now, pdfSizeBytes: blob.size || 0 };
+    updated.unshift(saved);
+  }
+  localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated));
+  updateOperatorActivity(report.technician);
+  appendAuditLog({ username: report.technician, fullName: report.technician }, 'Report Generation', `Generated PDF for ${saved.id}`);
+  return saved;
+};
+
+export const appendAuditLog = (user, action, details = '') => {
+  try {
+    const logs = JSON.parse(localStorage.getItem(ADMIN_AUDIT_KEY) || '[]');
+    logs.unshift({
+      id: `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      userId: user?.username || user?.id || 'unknown',
+      userName: user?.fullName || user?.username || 'Operator',
+      action,
+      details,
+      timestamp: new Date().toISOString(),
+      ip: '127.0.0.1',
+      userAgent: navigator.userAgent,
+    });
+    localStorage.setItem(ADMIN_AUDIT_KEY, JSON.stringify(logs.slice(0, 1000)));
+  } catch (e) {
+    console.warn('Audit log write failed:', e);
+  }
+};
+
+const normalizeReport = (report) => {
+  if (!report) return null;
+
+  const source = report.data && !Array.isArray(report.data) ? report.data : report;
+  const id = source.id || source.reportId || `REP-${Date.now()}`;
+  const prediction = source.prediction || source.leakLabel || source.leak_section || 'No Leak';
+  const leakLocation = source.leakLocation || source.detectedLocation || source.detectedPath || source.leakSection || prediction;
+
+  return {
+    ...source,
+    id,
+    analysisId: source.analysisId || id.replace(/^REP-/, 'ANL-'),
+    technician: source.technician || source.operator || source.operatorName || 'Operator',
+    engineModel: source.engineModel || source.engine || 'C15',
+    prediction,
+    leakLocation,
+    leakSection: source.leakSection || source.leak_section || source.detectedLocation || prediction,
+    status: source.status || source.go_nogo || 'GO',
+    confidence: Number(source.confidence || 0),
+    riskLevel: source.riskLevel || 'Low',
+    inputs: source.inputs || {},
+    recommendations: source.recommendations || [],
+    pdfBlob: source.pdfBlob || null,
+    pdfName: source.pdfName || null,
+    pdfGeneratedAt: source.pdfGeneratedAt || source.timestamp || null,
+    pdfSizeBytes: source.pdfSizeBytes || 0,
+  };
+};
+
+const normalizeReportsResponse = (response) => {
+  const payload = response?.data ?? response;
+  const reports = Array.isArray(payload) ? payload : [];
+  return reports.map(normalizeReport).filter(Boolean);
 };
 
 // -----------------------------
@@ -139,15 +230,16 @@ export const api = {
     if (!USE_MOCK_API) {
       try {
         const response = await fetch(`${API_BASE_URL}/reports`);
-        return await response.json();
+        const data = await response.json();
+        return normalizeReportsResponse(data);
       } catch (err) {
         console.warn('API failed, using mock data:', err);
-        return getMockReports();
+        return getMockReports().map(normalizeReport).filter(Boolean);
       }
     }
 
     await new Promise(r => setTimeout(r, 600));
-    return getMockReports();
+    return getMockReports().map(normalizeReport).filter(Boolean);
   },
 
   // PREDICT
@@ -181,6 +273,7 @@ export const api = {
           };
 
           const prediction = goNogo === 'GO' ? 'No Leak' : leakSec;
+          const leakLocation = goNogo === 'GO' ? 'No leak location identified.' : leakSec;
           const riskLevel  = severityToRisk[severity] || (goNogo === 'GO' ? 'Low' : 'High');
 
           const reportToSave = {
@@ -189,6 +282,8 @@ export const api = {
             role:               technicianInfo?.role     || 'Operator',
             engineModel:        backendData.engine       || inputs?.engineModel || 'C15',
             prediction,
+            leakLocation,
+            leakSection: leakSec,
             status:             goNogo,
             confidence:         Math.round(backendData.confidence || 0),
             riskLevel,
@@ -202,7 +297,7 @@ export const api = {
           const saved = saveMockReport(reportToSave);
 
           // Return the enriched record so Results.jsx gets proper field names too
-          return { success: true, data: { ...backendData, ...saved } };
+          return { success: true, data: { ...backendData, ...saved, leakLocation, leakSection: leakSec } };
         }
 
         return apiResult;
@@ -235,6 +330,7 @@ export const api = {
     const pressureLow = isC15 ? 900 : 600;
 
     let prediction = 'No Leak';
+    let leakLocation = 'No leak location identified.';
     let status = 'GO';
     let confidence = 96;
     let riskLevel = 'Low';
@@ -248,16 +344,19 @@ export const api = {
 
     if (intake && exhaust) {
       prediction = 'Combined Leak';
+      leakLocation = 'Intake Manifold + Exhaust Manifold';
       status = 'NON-GO';
       riskLevel = 'Critical';
       confidence = 94;
     } else if (exhaust) {
       prediction = 'Exhaust Leak';
+      leakLocation = 'Exhaust Manifold Joint / Turbine Outlet';
       status = 'NON-GO';
       riskLevel = 'High';
       confidence = 91;
     } else if (intake) {
       prediction = 'Intake Leak';
+      leakLocation = 'Turbocharger Intake Pipe / Intake Manifold';
       status = 'NON-GO';
       riskLevel = 'Medium';
       confidence = 90;
@@ -276,6 +375,8 @@ export const api = {
       manufacturingYears,
 
       prediction,
+      leakLocation,
+      leakSection: leakLocation,
       status,
       confidence,
       riskLevel,

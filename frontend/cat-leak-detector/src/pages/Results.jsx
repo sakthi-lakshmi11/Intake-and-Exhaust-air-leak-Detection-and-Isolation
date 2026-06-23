@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { generateDiagnosticPDF } from '../services/pdfReport';
 import { getLeakDisplay } from '../services/leakDisplay'; // FEATURE 2
+import { getDetectedPath } from '../services/leakPath';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import EngineDiagram from '../components/EngineDiagram';
@@ -193,12 +194,24 @@ export default function Results() {
   inputs = {}
 } = report;
   const engineModel = report.engineModel || inputs?.engineModel || 'C7';
+  const normalizeLeakLocation = (value) => {
+    const text = String(value || '').trim();
+    return text && !['-', '—', 'N/A', 'NA', 'None', 'null', 'undefined'].includes(text) ? text : '';
+  };
+  const reportLeakLocation =
+    normalizeLeakLocation(report.leakLocation) ||
+    normalizeLeakLocation(report.leak_section) ||
+    normalizeLeakLocation(report.detectedLocation) ||
+    normalizeLeakLocation(report.detectedPath) ||
+    '';
   const isGo =
   status === 'GO' ||
   status === 'Healthy' ||
   prediction === 'Healthy' ||
   prediction === 'No Leak';
-  const leakLocation = leakLocationMap[prediction] || '—';
+  const leakLocation = isGo
+    ? 'No leak location identified.'
+    : reportLeakLocation || leakLocationMap[prediction] || prediction || '—';
 
   // Resolve all no-leak display values from a single source of truth.
   // isGo → leakLabel='NO LEAK' (green), riskDisplay='—', sectionDisplay='—'
@@ -221,7 +234,7 @@ export default function Results() {
             Diagnostics Analysis Report
           </p>
           <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-gray-900">
-            Intake and Exhaust Air Leak Detection
+            Intake and Exhaust Air Leak Detection and Isolation
           </h1>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-[12px] text-gray-500">
             <span className="flex items-center gap-1.5">
@@ -266,24 +279,16 @@ export default function Results() {
               <div className="h-full bg-cat-yellow rounded-full" style={{ width: `${confidence}%` }} />
             </div>
           </div>
-          {/* Leak Status card
-               No-leak  → 'NO LEAK' in green
-               Leak      → raw prediction string in existing dark colour */}
+          {/* Leak Section card — shows the raw backend component/location string */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Leak Status</p>
-            <p className={`text-lg font-extrabold leading-tight ${
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Leak Section</p>
+            <p className={`text-sm font-extrabold leading-tight ${
               leakDisplay.isNil ? 'text-green-600' : 'text-gray-900'
             }`}>
-              {leakDisplay.leakLabel}
-            </p>
-            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">
-              {leakDisplay.leakStatus}
+              {leakDisplay.isNil ? 'No leak detected' : (reportLeakLocation || prediction)}
             </p>
           </div>
 
-          {/* Risk Level card
-               No-leak  → '—' in neutral grey, neutral background
-               Leak      → existing coloured background + coloured text */}
           <div className={`border rounded-xl p-5 ${
             leakDisplay.isNil ? 'bg-white border-gray-200' : riskBg(riskLevel)
           }`}>
@@ -291,22 +296,18 @@ export default function Results() {
             <p className={`text-lg font-extrabold leading-tight ${
               leakDisplay.isNil ? 'text-gray-400' : riskColor(riskLevel)
             }`}>
-              {leakDisplay.isNil ? '—' : riskLevel}
+              {leakDisplay.isNil ? 'No risk' : riskLevel}
             </p>
-            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">Risk Assessment</p>
           </div>
 
-          {/* Detected Section card
-               No-leak  → '—' in neutral grey
-               Leak      → derived section label in dark colour */}
+          {/* Detected Path card */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Detected Section</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Detected Path</p>
             <p className={`text-sm font-extrabold leading-tight ${
               leakDisplay.isNil ? 'text-gray-400' : 'text-gray-900'
             }`}>
-              {leakDisplay.sectionDisplay}
+              {leakDisplay.isNil ? 'No path detected' : getDetectedPath(report.leakLocation || report.detectedLocation || report.leak_section || prediction)}
             </p>
-            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">Engine Section</p>
           </div>
         </div>
 
@@ -360,7 +361,7 @@ export default function Results() {
             >
               {/* SVG fills available width; height is auto via viewBox + preserveAspectRatio */}
               <div className="w-full max-w-full">
-                <EngineDiagram engineModel={engineModel} prediction={prediction} isGo={isGo} />
+                <EngineDiagram engineModel={engineModel} prediction={prediction} leakLocation={leakLocation} isGo={isGo} />
               </div>
               {/* Hover overlay */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-200 flex items-center justify-center pointer-events-none">
@@ -411,18 +412,20 @@ export default function Results() {
         <div>
           <SectionTitle>Recommended Maintenance Actions</SectionTitle>
 
-          <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
-            {(typeof recommendations === "string"
-              ? recommendations.split(/\s*(?=\d+\.\s)/).filter(Boolean)
-              : (recommendations || [])
-            ).map((rec, i) => (
-              <div key={i} className="flex items-start gap-3 px-5 py-4">
-                <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
-                <span className="text-sm text-gray-700 leading-relaxed">
-                  {rec}
-                </span>
-              </div>
-            ))}
+          <div className="bg-white border border-gray-200 rounded-xl">
+            <ul className="divide-y divide-gray-100">
+              {(typeof recommendations === "string"
+                ? recommendations.split(/\s*(?=\d+\.\s)/).filter(Boolean)
+                : (recommendations || [])
+              ).map((rec, i) => (
+                <li key={i} className="flex items-start gap-3 px-5 py-4">
+                  <CheckSquare className="w-4 h-4 text-cat-yellow shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                    {rec}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
@@ -492,6 +495,7 @@ export default function Results() {
                 <EngineDiagram
                   engineModel={engineModel}
                   prediction={prediction}
+                  leakLocation={leakLocation}
                   isGo={isGo}
                 />
               </div>

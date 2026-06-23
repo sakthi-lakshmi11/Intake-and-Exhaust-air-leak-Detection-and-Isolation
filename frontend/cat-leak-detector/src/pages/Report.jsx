@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../services/api';
 import { getLeakDisplay } from '../services/leakDisplay'; // FEATURE 2
+import { getDetectedPath } from '../services/leakPath';
 import CaterpillarLogo from '../components/CaterpillarLogo';
 import { Printer, Download, Plus, ChevronRight, FileSpreadsheet, ShieldAlert } from 'lucide-react';
 
@@ -42,7 +43,7 @@ export default function Report() {
           <div>
             <span className="text-[10px] font-mono font-extrabold text-cat-yellow uppercase tracking-widest">{t('reports')}</span>
             <h1 className="text-4xl sm:text-5xl font-extrabold font-display text-gray-900 uppercase tracking-tight mt-1">
-              INTAKE AND EXHAUST AIR LEAK DETECTION
+              INTAKE AND EXHAUST AIR LEAK DETECTION AND ISOLATION
             </h1>
           </div>
           
@@ -144,7 +145,7 @@ export default function Report() {
                     {/* Result and Confidence */}
                     <div className="border border-gray-200 rounded p-4">
                       <div className="text-[10px] font-mono font-extrabold text-cat-yellow uppercase tracking-[0.18em] mb-3">NEURAL PREDICTION SUMMARY</div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm font-mono">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm font-mono">
                         {/* CLASSIFICATION — 'NO LEAK' when no leak, translated label otherwise */}
                         <div>
                           <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest block mb-0.5">CLASSIFICATION</span>
@@ -176,6 +177,18 @@ export default function Report() {
                                   {t(selectedReport.riskLevel.toLowerCase() === 'medium' ? 'riskMedium' : selectedReport.riskLevel.toLowerCase() || 'low')}
                                 </span>;
                           })()}
+                        </div>
+                        {/* DETECTED PATH */}
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest block mb-0.5">DETECTED PATH</span>
+                          <span className="font-bold uppercase text-gray-900">
+                            {(() => {
+                              const ld = getLeakDisplay(selectedReport.prediction);
+                              return ld.isNil
+                                ? 'No path detected'
+                                : getDetectedPath(selectedReport.leakLocation || selectedReport.detectedLocation || selectedReport.leak_section || selectedReport.prediction);
+                            })()}
+                          </span>
                         </div>
                       </div>
                     </div>
