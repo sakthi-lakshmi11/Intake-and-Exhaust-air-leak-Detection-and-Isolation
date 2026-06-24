@@ -212,6 +212,7 @@ export default function Dashboard() {
     if (res.success && res.data) {
       setSequenceId(res.data.sequence_id);
       const fetchedInputs = {
+        ...res.data.inputs,
         rpm: res.data.inputs.rpm,
         fuelRate: res.data.inputs.fuelRate,
         injectionPressure: res.data.inputs.injectionPressure,

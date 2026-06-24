@@ -244,27 +244,12 @@ export const api = {
 
   // GET RANDOM C15 SEQUENCE
   getRandomC15Sequence: async () => {
-    if (!USE_MOCK_API) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/random-c15-sequence`);
-        return await response.json();
-      } catch (err) {
-        return { success: false, message: `Flask API connection error: ${err.message}` };
-      }
+    try {
+      const response = await fetch(`${API_BASE_URL}/random-c15-sequence`);
+      return await response.json();
+    } catch (err) {
+      return { success: false, message: `Flask API connection error: ${err.message}` };
     }
-    // Mock for C15 sequence
-    return {
-      success: true,
-      data: {
-        sequence_id: 101,
-        inputs: {
-          rpm: 1550,
-          fuelRate: 42,
-          injectionPressure: 1300,
-          fuelInjectionTime: 2.3
-        }
-      }
-    };
   },
 
   // GET RANDOM C7 SEQUENCE
@@ -294,7 +279,7 @@ export const api = {
 
   // PREDICT
   predict: async (inputs, technicianInfo) => {
-    if (!USE_MOCK_API) {
+    if (!USE_MOCK_API || inputs?.engineModel === 'C15') {
       try {
         const response = await fetch(`${API_BASE_URL}/predict`, {
           method: 'POST',
@@ -337,7 +322,7 @@ export const api = {
             status:             goNogo,
             confidence:         Math.round(backendData.confidence || 0),
             riskLevel,
-            inputs,
+            inputs: { ...inputs, ...(backendData.inputs || {}) },
             recommendations:    backendData.recommendations || [],
             leak_section:       leakSec,
             severity,

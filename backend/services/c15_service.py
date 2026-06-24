@@ -93,7 +93,7 @@ def run_c15_prediction(sequence_id=None):
     load_c15_assets()
 
     if sequence_id is not None:
-        chosen_sequence = sequence_id
+        chosen_sequence = int(sequence_id)
     else:
         sequence_ids = df["Sequence_ID"].unique()
         chosen_sequence = random.choice(sequence_ids)
@@ -203,30 +203,23 @@ def run_c15_prediction(sequence_id=None):
     # ==========================================
 
     dashboard_inputs = {
-
-        "rpm":
-        float(
-            seq.iloc[0]["RPM"]
-        ),
-
-        "fuel_rate":
-        float(
-            seq.iloc[0]["Fuel_Rate"]
-        ),
-
-        "fuel_injection_pressure":
-        float(
-            seq.iloc[0][
-                "Fuel_Injection_Pressure"
-            ]
-        ),
-
-        "fuel_injection_time":
-        float(
-            seq.iloc[0][
-                "Fuel_Injection_Time"
-            ]
-        )
+        "rpm": float(seq.iloc[-1]["RPM"]),
+        "fuel_rate": float(seq.iloc[-1]["Fuel_Rate"]),
+        "fuel_injection_pressure": float(seq.iloc[-1]["Fuel_Injection_Pressure"]),
+        "fuel_injection_time": float(seq.iloc[-1]["Fuel_Injection_Time"]),
+        "Filter_DeltaP": float(seq.iloc[-1]["Filter_DeltaP"]),
+        "Turbo_Inlet_Pressure": float(seq.iloc[-1]["Turbo_Inlet_Pressure"]),
+        "Turbo_Speed": float(seq.iloc[-1]["Turbo_Speed"]),
+        "Compressor_Outlet_Pressure": float(seq.iloc[-1]["Compressor_Outlet_Pressure"]),
+        "Compressor_Outlet_Temperature": float(seq.iloc[-1]["Compressor_Outlet_Temperature"]),
+        "MAP": float(seq.iloc[-1]["MAP"]),
+        "MAT": float(seq.iloc[-1]["MAT"]),
+        "Turbine_Inlet_Pressure": float(seq.iloc[-1]["Turbine_Inlet_Pressure"]),
+        "DOC_Inlet_EGT": float(seq.iloc[-1]["DOC_Inlet_EGT"]),
+        "DOC_Outlet_EGT": float(seq.iloc[-1]["DOC_Outlet_EGT"]),
+        "DPF_DeltaP": float(seq.iloc[-1]["DPF_DeltaP"]),
+        "DPF_EGT": float(seq.iloc[-1]["DPF_EGT"]),
+        "NOx": float(seq.iloc[-1]["NOx"])
     }
     
     print("FINAL SECTION =", location_map.get(leak_label))
